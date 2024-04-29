@@ -102,10 +102,11 @@ GuiShow( mode := "" )
     if( GetCurrentImagePath() ) {
         pbitmap := Gdip_CreateBitmapFromFile(GetCurrentImagePath())
         Gdip_GetImageDimension(pbitmap, w, h)
+        global min_width
         ; MsgBox, % "2 " w "," h
-        if( w < 400 ) {
-            image_scale := 400 / w
-            w := 400
+        if( w < min_width ) {
+            image_scale := min_width / w
+            w := min_width
             h := h * image_scale
         }
         ; MsgBox, % "3 " w "," h
@@ -157,10 +158,11 @@ GuiShowImage(image_path, zoom_method:="100%", keep_center:=false)
     }
     if( pbitmap != "" ) {
         image_scale := GetZoomLevel(zoom_method, pbitmap)
+        global min_width
         GuiGetImageSize(pbitmap, image_scale, keep_center, x, y, w, h)
-        if( (zoom_method == "100%" || zoom_method == "last") && w < 400 ) {
+        if( (zoom_method == "100%" || zoom_method == "last") && w < min_width ) {
             Gdip_GetImageDimension(pbitmap, img_w, img_h)
-            image_scale := 400 / img_w
+            image_scale := min_width / img_w
             GuiGetImageSize(pbitmap, image_scale, keep_center, x, y, w, h)
             ; MsgBox, % zoom_method ", " w "," image_scale "," keep_center "`n" x "," y
             ; MsgBox, % "1 " w "," h

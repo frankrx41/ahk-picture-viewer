@@ -17,6 +17,7 @@ ToolTip,
 ;program settings
 file_ext_list       := "avci,avcs,avif,acifs,bmp,dib,gif,heic,heics,heif,heifs,hif,jfif,jpe,jpeg,jpg,png,tif,tiff,wdp,webp,tag,ico"
 select_file_filter  := "Image (*.*)"
+min_width           := 500
 
 gdip_token := Gdip_Startup()
 if( !gdip_token )
