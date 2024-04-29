@@ -102,6 +102,8 @@ GuiShow( mode := "" )
     if( GetCurrentImagePath() ) {
         pbitmap := Gdip_CreateBitmapFromFile(GetCurrentImagePath())
         Gdip_GetImageDimension(pbitmap, w, h)
+        Gdip_DisposeBitmap(pbitmap)
+        DeleteObject(pbitmap)
         global min_width
         ; MsgBox, % "2 " w "," h
         if( w < min_width ) {
@@ -129,6 +131,8 @@ GuiUpdateTitle(image_path:="")
         ; GetImgDimension(image_path, img_w, img_h)
         pbitmap := Gdip_CreateBitmapFromFile(image_path)
         Gdip_GetImageDimension(pbitmap, img_w, img_h)
+        Gdip_DisposeBitmap(pbitmap)
+        DeleteObject(pbitmap)
         script_title .= Format(" {:.0f}*{:.0f}", img_w, img_h)
     } else {
         script_title := "AHK Picture Viewer"
@@ -170,6 +174,8 @@ GuiShowImage(image_path, zoom_method:="100%", keep_center:=false)
         ; GuiControl, PV:Move, pvpic, % "x" x " y" y " w" w " h" h
         ShowImageToControl(hwnd, pbitmap, w, h)
         GuiControl, PV:Move, pvpic, % "x" x " y" y
+        Gdip_DisposeBitmap(pbitmap)
+        DeleteObject(pbitmap)
     }
     last_image_path := image_path
     in_process := false

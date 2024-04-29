@@ -126,8 +126,9 @@ BackSpace::
 return
 
 Delete::
-    FileRecycle, % GetCurrentImagePath()
+    path := GetCurrentImagePath()
     Gosub, NextPicture
+    FileRecycle, %path%
     ImageListInitialize(GetCurrentImagePath())
     GuiUpdateTitle(GetCurrentImagePath())
 return

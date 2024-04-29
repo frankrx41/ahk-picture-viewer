@@ -81,6 +81,8 @@ CopyImageToClipboard(file_path) {
     pBitmap := Gdip_CreateBitmapFromFile(file_path)
     Gdip_SetBitmapToClipboard(pBitmap)
     Gdip_DisposeImage(pBitmap)
+    Gdip_DisposeBitmap(pbitmap)
+    DeleteObject(pbitmap)
 
     DllCall("OpenClipboard", "UPtr", 0)
     DllCall("CloseClipboard")
