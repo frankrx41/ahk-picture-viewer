@@ -102,8 +102,13 @@ GuiShow( mode := "" )
     if( GetCurrentImagePath() ) {
         pbitmap := Gdip_CreateBitmapFromFile(GetCurrentImagePath())
         Gdip_GetImageDimension(pbitmap, w, h)
-        w := Max(400, w)
-        h := Max(400, h)
+        ; MsgBox, % "2 " w "," h
+        if( w < 400 ) {
+            image_scale := 400 / w
+            w := 400
+            h := h * image_scale
+        }
+        ; MsgBox, % "3 " w "," h
         initial_width_height := "w" . w . " h" . h
         ; ToolTip, % initial_width_height
         Gui, PV:Show, Center %initial_width_height%
@@ -158,6 +163,7 @@ GuiShowImage(image_path, zoom_method:="100%", keep_center:=false)
             image_scale := 400 / img_w
             GuiGetImageSize(pbitmap, image_scale, keep_center, x, y, w, h)
             ; MsgBox, % zoom_method ", " w "," image_scale "," keep_center "`n" x "," y
+            ; MsgBox, % "1 " w "," h
         }
         ; GuiControl, PV:Move, pvpic, % "x" x " y" y " w" w " h" h
         ShowImageToControl(hwnd, pbitmap, w, h)
