@@ -155,6 +155,7 @@ GuiShowImage(image_path, zoom_method:="100%", keep_center:=false)
     if( image_path != last_image_path ) {
         if( last_image_path ) {
             Gdip_DisposeImage(pbitmap)
+            DeleteObject(pbitmap)
         }
         if( image_path ) {
             pbitmap := Gdip_CreateBitmapFromFile(image_path)
@@ -174,8 +175,6 @@ GuiShowImage(image_path, zoom_method:="100%", keep_center:=false)
         ; GuiControl, PV:Move, pvpic, % "x" x " y" y " w" w " h" h
         ShowImageToControl(hwnd, pbitmap, w, h)
         GuiControl, PV:Move, pvpic, % "x" x " y" y
-        Gdip_DisposeBitmap(pbitmap)
-        DeleteObject(pbitmap)
     }
     last_image_path := image_path
     in_process := false
