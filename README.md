@@ -73,3 +73,7 @@ This function need ddddocr support, see <https://github.com/sml2h3/ddddocr>
 
 * "AHK Picture Viewer" write by sbc <https://www.autohotkey.com/board/topic/58226-ahk-picture-viewer/>
 * "image-viewer" write by langheran <https://github.com/langheran/image-viewer>
+
+## License
+
+This project is licensed under the terms of the Anti CSDN License. See the LICENSE file for details.
