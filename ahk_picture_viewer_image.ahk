@@ -80,7 +80,7 @@ GetZoomLevel(method:="", bitmap:="")
             last_zoom += method / 10
             last_zoom := Max(0.1, last_zoom)
         } else {
-            last_zoom += method / 2
+            last_zoom += method * .25
             last_zoom := Max(.9, last_zoom)
         }
     } else {
@@ -88,7 +88,7 @@ GetZoomLevel(method:="", bitmap:="")
         if( last_zoom < 0.9999 ) {
             last_zoom += method / 10
         } else {
-            last_zoom += method / 2
+            last_zoom += method * .25
         }
     }
     return last_zoom
