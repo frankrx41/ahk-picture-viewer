@@ -1,20 +1,57 @@
-; Update `img_path_list`
 ImageListInitialize(file_path)
 {
     local
     global img_path_list, img_list_index
     global file_ext_list
-    ;clear the last used array contents
+
     img_path_list := []
-    SplitPath, file_path,, file_dir
-    loop %file_dir%\*
+
+    SplitPath, file_path, file_name, file_dir, file_ext, file_name_no_ext
+
+    tempList := ""  ; will hold lines: key|fullpath
+
+    Loop, Files, %file_dir%\*
     {
-        if A_LoopFileExt in %file_ext_list%
+        if (A_LoopFileExt in file_ext_list)
         {
-            img_path_list.Push(A_LoopFileLongPath)
-            if( A_LoopFileLongPath == file_path ) {
-                img_list_index := img_path_list.Length()
+            SplitPath, A_LoopFileLongPath, fn, , , fn_no_ext
+
+            ; Match once here
+            if RegExMatch(fn_no_ext, "i)^photo_(\d+)_([0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2})$", m)
+            {
+                num  := Format("{:08}", m1)  ; zero‑pad for proper string sort
+                date := m2
+                key  := date . "_" . num
             }
+            else
+            {
+                ; Non‑matching files go after, sorted by name
+                key := "zzzzzzzz_" . fn_no_ext
+            }
+
+            tempList .= key . "|" . A_LoopFileLongPath . "`n"
+        }
+    }
+
+    ; Sort by key (date+num) ascending
+    Sort, tempList, D`n
+
+    ; Build final array
+    Loop, Parse, tempList, `n
+    {
+        if !A_LoopField
+            continue
+        StringSplit, parts, A_LoopField, |
+        img_path_list.Push(parts2)
+    }
+
+    ; Find index of current file
+    img_list_index := ""
+    Loop % img_path_list.Length()
+    {
+        if (img_path_list[A_Index] = file_path) {
+            img_list_index := A_Index
+            break
         }
     }
 }
