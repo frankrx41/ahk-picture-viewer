@@ -12,7 +12,7 @@ ImageListInitialize(file_path)
 
     Loop, Files, %file_dir%\*
     {
-        if (A_LoopFileExt in file_ext_list)
+        if A_LoopFileExt in %file_ext_list%
         {
             SplitPath, A_LoopFileLongPath, fn, , , fn_no_ext
 
