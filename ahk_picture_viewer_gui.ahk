@@ -103,7 +103,6 @@ GuiShow( mode := "" )
         pbitmap := Gdip_CreateBitmapFromFile(GetCurrentImagePath())
         Gdip_GetImageDimension(pbitmap, w, h)
         Gdip_DisposeBitmap(pbitmap)
-        DeleteObject(pbitmap)
         global min_width
         ; MsgBox, % "2 " w "," h
         if( w < min_width ) {
@@ -132,7 +131,6 @@ GuiUpdateTitle(image_path:="")
         pbitmap := Gdip_CreateBitmapFromFile(image_path)
         Gdip_GetImageDimension(pbitmap, img_w, img_h)
         Gdip_DisposeBitmap(pbitmap)
-        DeleteObject(pbitmap)
         script_title .= Format(" {:.0f}*{:.0f}", img_w, img_h)
     } else {
         script_title := "AHK Picture Viewer"
@@ -153,9 +151,9 @@ GuiShowImage(image_path, zoom_method:="100%", keep_center:=false)
     in_process := true
 
     if( image_path != last_image_path ) {
-        if( last_image_path ) {
+        if( pbitmap ) {
             Gdip_DisposeImage(pbitmap)
-            DeleteObject(pbitmap)
+            pbitmap := ""
         }
         if( image_path ) {
             pbitmap := Gdip_CreateBitmapFromFile(image_path)
@@ -173,24 +171,32 @@ GuiShowImage(image_path, zoom_method:="100%", keep_center:=false)
             ; MsgBox, % "1 " w "," h
         }
         ; GuiControl, PV:Move, pvpic, % "x" x " y" y " w" w " h" h
-        ShowImageToControl(hwnd, pbitmap, w, h)
+        ShowImageToControl(pvpic, pbitmap, w, h)
         GuiControl, PV:Move, pvpic, % "x" x " y" y
+    } else {
+        GuiControlGet, hwnd, PV:hwnd, pvpic
+        ; SetImage does not accept a null bitmap, so clear the control directly.
+        old_bitmap := DllCall("SendMessage", "Ptr", hwnd, "UInt", 0x172, "Ptr", 0, "Ptr", 0, "Ptr")
+        if( old_bitmap )
+            DeleteObject(old_bitmap)
     }
-    last_image_path := image_path
+    last_image_path := pbitmap ? image_path : ""
     in_process := false
 }
 
 ; See `Gdip_SetPbitmapCtrl`
 ShowImageToControl(pvpic, pbitmap, w, h)
 {
-    ; pBrush := Gdip_BrushCreateSolid(0x00FF0000)
+    if( !pbitmap || w < 1 || h < 1 )
+        return
+
     hDC := CreateCompatibleDC()
     hbm := CreateDIBSection(w, -h, hdc)
     obm := SelectObject(hDC, hbm)
 
     hdc2 := CreateCompatibleDC()
     hBitmap := Gdip_CreateARGBHBITMAPFromBitmap(pbitmap)
-    SelectObject(hdc2, hBitmap)
+    obm2 := SelectObject(hdc2, hBitmap)
 
     Gdip_GetImageDimensions(pBitmap, Width, Height)
     ; https://github.com/github/VisualStudio/blob/master/tools/Debugging%20Tools%20for%20Windows/winext/manifest/gdi32.h
@@ -199,21 +205,27 @@ ShowImageToControl(pvpic, pbitmap, w, h)
     ; StretchDIBits(hDC, 0, 0, w, h, hdc2, 0, 0, width, height, 0x00CC0020 )
     ; If pBrush
 
-    newBitmap := !r ? Gdip_CreateBitmapFromHBITMAP(hbm) : ""
+    newBitmap := Gdip_CreateBitmapFromHBITMAP(hbm)
+    ; A selected bitmap cannot be deleted. Restore both DCs first.
+    SelectObject(hdc, obm)
+    SelectObject(hdc2, obm2)
     DeleteObject(hbm)
-    DeleteObject(hbm2)
+    DeleteObject(hBitmap)
     DeleteDC(hdc)
     DeleteDC(hdc2)
 
-    If pBrush
-       Gdip_DeleteBrush(pBrush)
+    if( !newBitmap )
+        return
 
-    ; Gdip_CreateARGBHBITMAPFromBitmap
     hBitmap := Gdip_CreateARGBHBITMAPFromBitmap(newBitmap)
+    Gdip_DisposeImage(newBitmap)
     GuiControlGet, hwnd, PV:hwnd, pvpic
     E := SetImage(hwnd, hBitmap)
-    DeleteObject(hBitmap)
-    Gdip_DisposeImage(fbmp)
+    ; The static control may retain our bitmap or make an alpha-channel copy.
+    ; SetImage deletes the previous control bitmap on the next redraw.
+    control_bitmap := DllCall("SendMessage", "Ptr", hwnd, "UInt", 0x173, "Ptr", 0, "Ptr", 0, "Ptr")
+    if( hBitmap && control_bitmap != hBitmap )
+        DeleteObject(hBitmap)
 }
 
 GuiGetImageSize(pbitmap, image_scale, keep_center, ByRef x, ByRef y, ByRef w, ByRef h)
