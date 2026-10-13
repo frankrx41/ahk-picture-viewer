@@ -1,3 +1,123 @@
+; Owns decoded bitmaps. Callers borrow handles only until the next cache operation.
+class BitmapCache
+{
+    __New(max_bytes, max_images)
+    {
+        this.max_bytes := max_bytes
+        this.max_images := Max(1, max_images)
+        this.entries := []
+        this.bytes := 0
+    }
+
+    Get(path)
+    {
+        was_critical := A_IsCritical
+        Critical, On
+        try {
+            return this.Load(path)
+        } finally {
+            Critical, % was_critical
+        }
+    }
+
+    GetDimensions(path, ByRef width, ByRef height)
+    {
+        was_critical := A_IsCritical
+        Critical, On
+        try {
+            bitmap := this.Get(path)
+            width := 0, height := 0
+            if( bitmap )
+                Gdip_GetImageDimensions(bitmap, width, height)
+        } finally {
+            Critical, % was_critical
+        }
+    }
+
+    Load(path)
+    {
+        try {
+            FileGetTime, modified, % path, M
+            FileGetSize, size, % path
+        } catch error {
+            this.Remove(path)
+            return 0
+        }
+        for index, entry in this.entries {
+            if( entry.path = path ) {
+                if( entry.modified = modified && entry.size = size ) {
+                    this.entries.RemoveAt(index)
+                    this.entries.Push(entry)
+                    return entry.bitmap
+                }
+                this.Remove(path)
+                break
+            }
+        }
+
+        source := Gdip_CreateBitmapFromFile(path)
+        if( source <= 0 )
+            return 0
+        Gdip_GetImageDimensions(source, width, height)
+        bytes := width * height * 4
+        ; Evict before copying pixels. An oversized image is kept alone while in use.
+        while( this.entries.Length() && (this.bytes + bytes > this.max_bytes
+            || this.entries.Length() >= this.max_images) )
+            this.Remove(this.entries[1].path)
+
+        ; Copy into independent pixels so cached images do not lock source files.
+        bitmap := Gdip_CreateBitmap(width, height)
+        graphics := bitmap ? Gdip_GraphicsFromImage(bitmap) : 0
+        status := 1
+        if( graphics ) {
+            Gdip_SetCompositingMode(graphics, 1)
+            status := Gdip_DrawImage(graphics, source, 0, 0, width, height, 0, 0, width, height)
+            Gdip_DeleteGraphics(graphics)
+        }
+        Gdip_DisposeImage(source)
+        if( status != 0 ) {
+            if( bitmap )
+                Gdip_DisposeImage(bitmap)
+            return 0
+        }
+        this.entries.Push({path: path, modified: modified, size: size, bitmap: bitmap, bytes: bytes})
+        this.bytes += bytes
+        return bitmap
+    }
+
+    Remove(path)
+    {
+        was_critical := A_IsCritical
+        Critical, On
+        try {
+            for index, entry in this.entries {
+                if( entry.path = path ) {
+                    Gdip_DisposeImage(entry.bitmap)
+                    this.bytes -= entry.bytes
+                    this.entries.RemoveAt(index)
+                    return
+                }
+            }
+        } finally {
+            Critical, % was_critical
+        }
+    }
+
+    Clear()
+    {
+        was_critical := A_IsCritical
+        Critical, On
+        try {
+            for index, entry in this.entries
+                Gdip_DisposeImage(entry.bitmap)
+            this.entries := []
+            this.bytes := 0
+        } finally {
+            Critical, % was_critical
+        }
+    }
+}
+
 ; method:
 ;   * get
 ;   * get_legacy

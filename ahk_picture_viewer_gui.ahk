@@ -100,9 +100,10 @@ GuiShow( mode := "" )
     }
     else
     if( GetCurrentImagePath() ) {
-        pbitmap := Gdip_CreateBitmapFromFile(GetCurrentImagePath())
-        Gdip_GetImageDimension(pbitmap, w, h)
-        Gdip_DisposeBitmap(pbitmap)
+        global image_cache
+        image_cache.GetDimensions(GetCurrentImagePath(), w, h)
+        if( !w || !h )
+            return
         global min_width
         ; MsgBox, % "2 " w "," h
         if( w < min_width ) {
@@ -123,14 +124,13 @@ GuiShow( mode := "" )
 GuiUpdateTitle(image_path:="")
 {
     local
+    global image_cache
     static img_name
     if( image_path != "" ) {
         SplitPath, image_path, img_name
         script_title := Format("[{2}] {1} {3}", img_name, GetFileIndexText(), GetZoomLevel("get"))
         ; GetImgDimension(image_path, img_w, img_h)
-        pbitmap := Gdip_CreateBitmapFromFile(image_path)
-        Gdip_GetImageDimension(pbitmap, img_w, img_h)
-        Gdip_DisposeBitmap(pbitmap)
+        image_cache.GetDimensions(image_path, img_w, img_h)
         script_title .= Format(" {:.0f}*{:.0f}", img_w, img_h)
     } else {
         script_title := "AHK Picture Viewer"
@@ -140,26 +140,19 @@ GuiUpdateTitle(image_path:="")
 
 GuiShowImage(image_path, zoom_method:="100%", keep_center:=false)
 {
-    global pvpic
-    static last_image_path := ""
-    static pbitmap := ""
+    global pvpic, image_cache
     static in_process := false
 
     if( in_process ) {
         return
     }
     in_process := true
+    was_critical := A_IsCritical
+    Critical, On
 
-    if( image_path != last_image_path ) {
-        if( pbitmap ) {
-            Gdip_DisposeImage(pbitmap)
-            pbitmap := ""
-        }
-        if( image_path ) {
-            pbitmap := Gdip_CreateBitmapFromFile(image_path)
-        }
-    }
-    if( pbitmap != "" ) {
+    ; Borrow the bitmap for this draw; only the cache disposes it.
+    pbitmap := image_path ? image_cache.Get(image_path) : 0
+    if( pbitmap ) {
         image_scale := GetZoomLevel(zoom_method, pbitmap)
         global min_width
         GuiGetImageSize(pbitmap, image_scale, keep_center, x, y, w, h)
@@ -180,8 +173,8 @@ GuiShowImage(image_path, zoom_method:="100%", keep_center:=false)
         if( old_bitmap )
             DeleteObject(old_bitmap)
     }
-    last_image_path := pbitmap ? image_path : ""
     in_process := false
+    Critical, % was_critical
 }
 
 ; See `Gdip_SetPbitmapCtrl`

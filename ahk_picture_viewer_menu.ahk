@@ -3,6 +3,7 @@ CopyAsFile:
 return
 
 ReOpenFile:
+    image_cache.Remove(GetCurrentImagePath())
     GuiShowImage(GetCurrentImagePath())
     GuiUpdateTitle(GetCurrentImagePath())
 return
