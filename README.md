@@ -10,15 +10,14 @@ Run "AHKPV.ahk"
 
 ## Image cache
 
-The viewer keeps up to three recently viewed decoded images for faster navigation,
-using a 128 MiB pixel budget. Older images are evicted first. A single image larger
-than the budget is retained alone until you navigate away. The budget excludes
-temporary rendering buffers and other application memory.
+The viewer caches every successfully opened image for the lifetime of the process,
+with no image-count or memory-size limit. Next/Previous, closing an image, and
+**File > Re-Open File** reuse the cached pixels without freeing or reloading them.
+Changes to an already cached source file are visible after restarting the viewer.
+Cached images do not lock source files.
 
-Adjust `BitmapCache(128 * 1024 * 1024, 3)` in `ahk_picture_viewer.ahk` to change
-the byte and image limits. Changed file sizes or modification times invalidate
-cached images; **File > Re-Open File** forces a refresh. Closing an image retains
-the bounded cache for reuse; exiting releases all cached images.
+All cached images are released when the process exits. Temporary rendering
+buffers are still released after each redraw.
 
 Run the cache regression checks with AutoHotkey v1.1:
 

@@ -8,7 +8,7 @@ SetBatchLines, -1
 token := Gdip_Startup()
 test_dir := A_Temp "\ahkpv-cache-" DllCall("GetCurrentProcessId")
 FileCreateDir, % test_dir
-cache := new BitmapCache(2048, 3)
+cache := new BitmapCache()
 exit_code := 0
 try {
     for index, name in ["a", "b", "c"]
@@ -22,38 +22,39 @@ try {
     cache.Get(b)
     Assert(cache.Get(a) = first, "Revisiting reuses decoded bitmap")
     cache.Get(c)
-    Assert(cache.entries.Length() = 2 && cache.bytes = 2048, "Pixel budget enforced")
-    Assert(cache.entries[1].path = a && cache.entries[2].path = c, "Least recently used image evicted")
+    Assert(cache.entries.Count() = 3 && cache.bytes = 3072, "All opened images retained")
 
-    cache.Clear()
-    cache.max_bytes := 1024 * 1024
-    cache.max_images := 2
-    cache.Get(a)
-    cache.Get(b)
-    cache.Get(c)
-    Assert(cache.entries.Length() = 2 && cache.entries[1].path = b, "Entry limit enforced")
+    ; Cross both former limits: three images and 128 MiB of decoded pixels.
+    Loop, 9 {
+        path := test_dir "\large-" A_Index ".png"
+        WriteImage(path, 2048)
+        Assert(cache.Get(path) > 0, "Large image loads")
+    }
+    Assert(cache.bytes > 128 * 1024 * 1024, "Cache exceeds former size limit")
+    Assert(cache.entries.Count() = 12, "Cache exceeds former image count limit")
+    bytes_before := cache.bytes
+    Loop, 100 {
+        cache.Get(b)
+        cache.Get(c)
+        Assert(cache.Get(a) = first, "Repeated navigation preserves original bitmap")
+    }
+    Assert(cache.bytes = bytes_before, "Revisits allocate no additional cached pixels")
 
-    ; Saving over a cached source also verifies that the source file is unlocked.
-    FileDelete, % c
-    Assert(!ErrorLevel, "Cached source can be deleted")
-    WriteImage(c, 32)
-    updated := cache.Get(c)
-    Gdip_GetImageDimensions(updated, width, height)
-    Assert(width = 32 && height = 32, "Changed source is refreshed")
-
-    cache.max_bytes := 1024
-    cache.Remove(c)
-    Assert(cache.Get(c) > 0 && cache.entries.Length() = 1, "Oversized image retained alone")
-    cache.Get(a)
-    Assert(cache.bytes = 1024 && cache.entries.Length() = 1, "Oversized image evicted on navigation")
+    ; Cached images remain usable even after their source is replaced or deleted.
     FileDelete, % a
-    Assert(cache.Get(a) = 0 && cache.bytes = 0, "Deleted source invalidates cache")
-    FileAppend, not an image, % a
-    Assert(cache.Get(a) = 0 && cache.entries.Length() = 0, "Invalid image is not cached")
-    cache.Get(b)
+    Assert(!ErrorLevel, "Cached source can be deleted")
+    WriteImage(a, 32)
+    Assert(cache.Get(a) = first, "Changed source retains original cached bitmap")
+    FileDelete, % a
+    Assert(cache.Get(a) = first, "Deleted source remains cached")
+    missing := test_dir "\missing.png"
+    Assert(cache.Get(missing) = 0, "Missing uncached image is rejected")
+    FileAppend, not an image, % missing
+    Assert(cache.Get(missing) = 0, "Invalid image is not cached")
+    Assert(cache.entries.Count() = 12, "Failed loads do not alter cache")
     cache.Clear()
     cache.Clear()
-    Assert(cache.bytes = 0 && cache.entries.Length() = 0, "Cleanup is repeatable")
+    Assert(cache.bytes = 0 && cache.entries.Count() = 0, "Exit cleanup is repeatable")
     FileAppend, PASS: bitmap cache regression checks`n, *
 } catch error {
     FileAppend, % "FAIL: " error.Message " (" error.What ", line " error.Line ")`n", *
@@ -65,6 +66,11 @@ try {
         path := test_dir "\" name ".png"
         FileDelete, % path
     }
+    Loop, 9 {
+        path := test_dir "\large-" A_Index ".png"
+        FileDelete, % path
+    }
+    FileDelete, % test_dir "\missing.png"
     FileRemoveDir, % test_dir
 }
 ExitApp, % exit_code

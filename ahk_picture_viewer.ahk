@@ -17,8 +17,8 @@ ToolTip,
 file_ext_list       := "avci,avcs,avif,acifs,bmp,dib,gif,heic,heics,heif,heifs,hif,jfif,jpe,jpeg,jpg,png,tif,tiff,wdp,webp,tag,ico"
 select_file_filter  := "Image (*.*)"
 min_width           := 500
-; Retain at most three recently viewed images, with a 128 MiB pixel budget.
-image_cache := new BitmapCache(128 * 1024 * 1024, 3)
+; Retain every opened image until this process exits.
+image_cache := new BitmapCache()
 
 gdip_token := Gdip_Startup()
 if( !gdip_token )
