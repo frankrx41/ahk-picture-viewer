@@ -70,6 +70,7 @@ Then you will get this when you right click an iamge file:
 | Up                | Zoom in                       |
 | Down              | Zoom out                      |
 | Mouse drag        | Move image                    |
+| Hover left/right edge | Show `<` / `>` buttons; click for previous/next image |
 | Space             | Fit with / fit window         |
 | Enter             | Fit image                     |
 | '                 | Fit height                    |

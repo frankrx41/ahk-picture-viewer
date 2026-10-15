@@ -31,7 +31,7 @@ return
 GuiInitialize()
 {
     local
-    global pvhwnd, pvpic
+    global pvhwnd, pvpic, pv_prev_button, pv_next_button
 
     ; Menu
     open_file_fn := Func("OpenFile").Bind()
@@ -50,7 +50,12 @@ GuiInitialize()
     Gui, PV:Color, 0x1e1e1e
     Gui, PV:Margin, 0, 0
     GUI, PV:+Resize -MaxSize -MinSize +LastFound +Hwndpvhwnd
-    Gui, PV:Add, Text, 0xE vpvpic   ; SS_Bitmap    = 0xE
+    Gui, PV:Add, Text, 0x400000E vpvpic   ; SS_BITMAP | WS_CLIPSIBLINGS
+    Gui, PV:Font, s24, Segoe UI
+    Gui, PV:Add, Button, Hidden -TabStop x12 y12 w44 h64 hwndpv_prev_button gPrevPicture, <
+    Gui, PV:Add, Button, Hidden -TabStop x68 y12 w44 h64 hwndpv_next_button gNextPicture, >
+    Gui, PV:Font
+    SetTimer, GuiUpdateNavigation, 50
     ; Gui, Add, StatusBar,, Bar's starting text (omit to start off empty).
     GroupAdd, AHKPV, ahk_id %pvhwnd%
     GuiControl, PV:Disable, pvpic           ; disable the beep
@@ -140,7 +145,7 @@ GuiUpdateTitle(image_path:="")
 
 GuiShowImage(image_path, zoom_method:="100%", keep_center:=false)
 {
-    global pvpic, image_cache
+    global pvpic, image_cache, pv_has_image
     static in_process := false
 
     if( in_process ) {
@@ -152,6 +157,7 @@ GuiShowImage(image_path, zoom_method:="100%", keep_center:=false)
 
     ; Borrow the bitmap for this draw; only the cache disposes it.
     pbitmap := image_path ? image_cache.Get(image_path) : 0
+    pv_has_image := !!pbitmap
     if( pbitmap ) {
         image_scale := GetZoomLevel(zoom_method, pbitmap)
         global min_width
@@ -330,27 +336,48 @@ WM_LBUTTONDBLCLK()
 }
 
 ; https://www.autohotkey.com/boards/viewtopic.php?t=103848
-WM_LBUTTONDOWN() {
-    global g_mx, g_my, pvhwnd
+WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
+    global g_mx, g_my, pvhwnd, pv_prev_button, pv_next_button
+    ; Native buttons dispatch their own click labels; do not also navigate or drag.
+    if( hwnd == pv_prev_button || hwnd == pv_next_button )
+        return
     MouseGetPos, g_mx, g_my
+    SetTimer, DragTimer, 16
+}
 
-    update_image := 0
-    GetClientSize(pvhwnd, gui_w, gui_h)
-    ; ToolTip, % g_mx ", " g_my "`n" gui_w ", " gui_h
-    width := 150
-    if( g_my > gui_h * .4 && g_my < gui_h * .6 ) {
-        if( g_mx < width ) {
-            Gosub, PrevPicture
-            update_image := 1
-        }
-        if( g_mx > gui_w - width ) {
-            Gosub, NextPicture
-            update_image := 1
-        }
+GuiUpdateNavigation()
+{
+    local
+    global pvhwnd, pv_prev_button, pv_next_button, pv_has_image
+    static last_width := 0, last_height := 0
+    if( !pv_prev_button || !pv_next_button )
+        return
+    GetClientSize(pvhwnd, width, height)
+    if( width != last_width || height != last_height ) {
+        y := Max(12, Floor((height - 64) / 2))
+        GuiControl, PV:Move, % pv_prev_button, % "x12 y" y
+        GuiControl, PV:Move, % pv_next_button, % "x" Max(12, width - 56) " y" y
+        last_width := width, last_height := height
     }
-
-    if( !update_image ) {
-        SetTimer, DragTimer, 16
+    MouseGetPos, , , hovered_window
+    VarSetCapacity(point, 8, 0)
+    DllCall("GetCursorPos", "Ptr", &point)
+    DllCall("ScreenToClient", "Ptr", pvhwnd, "Ptr", &point)
+    x := NumGet(point, 0, "Int"), y := NumGet(point, 4, "Int")
+    inside := pv_has_image && hovered_window == pvhwnd && width >= 112 && height >= 88
+        && x >= 0 && x < width && y >= 0 && y < height
+    edge_width := Min(150, Floor(width / 3))
+    for index, button in [pv_prev_button, pv_next_button] {
+        show := inside && (index = 1 ? x < edge_width : x >= width - edge_width)
+        if( show != !!DllCall("IsWindowVisible", "Ptr", button) ) {
+            if( show ) {
+                ; Keep navigation above the image without taking keyboard focus.
+                DllCall("SetWindowPos", "Ptr", button, "Ptr", 0, "Int", 0, "Int", 0
+                    , "Int", 0, "Int", 0, "UInt", 0x53)
+            } else {
+                GuiControl, PV:Hide, % button
+            }
+        }
     }
 }
 
