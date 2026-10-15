@@ -14,6 +14,8 @@ FilmstripUpdate(inside, x, y, width, height)
     show := inside && pv_has_image && !pv_thumbnail.dragging && width >= 160 && height >= 160
         && x >= 0 && x < width && y < height
         && y >= height - (pv_filmstrip.visible ? 108 : 32)
+    if( pv_filmstrip.dragging && pv_has_image )
+        show := true
     if( !show ) {
         GuiControl, PV:Hide, % pv_filmstrip.hwnd
         pv_filmstrip.visible := false
@@ -142,11 +144,65 @@ FilmstripClick(x)
     GuiUpdateTitle(GetCurrentImagePath())
 }
 
+FilmstripBeginDrag(x)
+{
+    global pv_filmstrip
+    SetTimer, DragTimer, Off
+    if( x < 28 || x >= pv_filmstrip.width - 28 ) {
+        FilmstripClick(x)
+        return
+    }
+    pv_filmstrip.dragging := true, pv_filmstrip.moved := false
+    pv_filmstrip.click_x := x, pv_filmstrip.start_first := pv_filmstrip.first
+    VarSetCapacity(point, 8, 0)
+    DllCall("GetCursorPos", "Ptr", &point)
+    pv_filmstrip.mouse_x := NumGet(point, 0, "Int")
+    DllCall("SetCapture", "Ptr", pv_filmstrip.hwnd)
+    SetTimer, FilmstripDragTimer, 16
+}
+
+FilmstripDragBy(delta)
+{
+    global pv_filmstrip, img_path_list
+    if( Abs(delta) < 6 && !pv_filmstrip.moved )
+        return
+    pv_filmstrip.moved := true
+    pv_filmstrip.first := Max(1, Min(Max(1, img_path_list.Length() - pv_filmstrip.slots + 1)
+        , pv_filmstrip.start_first - Round(delta / 96)))
+    pv_filmstrip.dirty := true
+}
+
+FilmstripDragTimer()
+{
+    global pv_filmstrip
+    if( !pv_filmstrip.dragging || !GetKeyState("LButton", "P") ) {
+        FilmstripEndDrag()
+        return
+    }
+    VarSetCapacity(point, 8, 0)
+    DllCall("GetCursorPos", "Ptr", &point)
+    FilmstripDragBy(NumGet(point, 0, "Int") - pv_filmstrip.mouse_x)
+}
+
+FilmstripEndDrag()
+{
+    global pv_filmstrip
+    SetTimer, FilmstripDragTimer, Off
+    if( !IsObject(pv_filmstrip) || !pv_filmstrip.dragging )
+        return
+    pv_filmstrip.dragging := false
+    DllCall("ReleaseCapture")
+    if( !pv_filmstrip.moved )
+        FilmstripClick(pv_filmstrip.click_x)
+}
+
 FilmstripClear()
 {
     global pv_filmstrip
     if( !IsObject(pv_filmstrip) )
         return
+    pv_filmstrip.moved := true
+    FilmstripEndDrag()
     for path, bitmap in pv_filmstrip.previews {
         if( bitmap )
             Gdip_DisposeImage(bitmap)

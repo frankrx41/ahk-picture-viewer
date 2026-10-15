@@ -31,7 +31,7 @@ return
 
 ~LButton up::
     SetTimer, DragTimer, Off
-    EndThumbnailDrag()
+    GuiEndPointerDrag()
 return
 
 Space::

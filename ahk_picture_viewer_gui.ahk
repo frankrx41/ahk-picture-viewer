@@ -56,7 +56,8 @@ GuiInitialize()
     Gui, PV:Add, Button, Hidden -TabStop x68 y12 w44 h64 hwndpv_next_button gNextPicture, >
     Gui, PV:Font
     Gui, PV:Add, Text, Hidden 0x400010E x0 y0 w1 h1 hwndthumbnail_hwnd
-    pv_thumbnail := {hwnd: thumbnail_hwnd, bitmap: 0, source: 0, dragging: false}
+    Gui, PV:Add, Text, Hidden 0x4000301 Background404040 cFFFFFF x0 y0 w180 h20 hwndthumbnail_handle, Drag to move
+    pv_thumbnail := {hwnd: thumbnail_hwnd, handle: thumbnail_handle, bitmap: 0, source: 0, dragging: false}
     FilmstripInitialize()
     SetTimer, GuiUpdateNavigation, 50
     ; Gui, Add, StatusBar,, Bar's starting text (omit to start off empty).
@@ -67,7 +68,7 @@ GuiInitialize()
     OnMessage(0x05, "WM_SIZE")
     OnMessage(0x020A, "WM_MOUSEWHEEL")
     OnMessage(0x0203, "WM_LBUTTONDBLCLK")
-    OnMessage(0x0202, "EndThumbnailDrag")
+    OnMessage(0x0202, "GuiEndPointerDrag")
 
     ; Right Menu
     Menu, right_menu, Add, &Next Picture, NextPicture
@@ -332,12 +333,15 @@ WM_MOUSEWHEEL(wParam, lParam, msg, hwnd) {
 }
 
 ; https://www.autohotkey.com/boards/viewtopic.php?t=20083
-WM_LBUTTONDBLCLK()
+WM_LBUTTONDBLCLK(wParam, lParam, msg, hwnd)
 {
-    global pvhwnd
-    MouseGetPos, , , , control_id
-    ; ToolTip, % control_id
-    if( control_id == "Static1" ) {
+    global pvhwnd, pvpic, pv_filmstrip
+    ; Route by the message target, not the control currently under the cursor.
+    ; Overlay redraws can otherwise make rapid navigation clicks hit Static1.
+    if( hwnd == pv_filmstrip.hwnd )
+        return WM_LBUTTONDOWN(wParam, lParam, msg, hwnd)
+    GuiControlGet, image_hwnd, PV:Hwnd, pvpic
+    if( hwnd == pvhwnd || hwnd == image_hwnd ) {
         WinGet, is_max, MinMax, ahk_id %pvhwnd%
         if( is_max ) {
             WinRestore, ahk_id %pvhwnd%
@@ -352,7 +356,11 @@ WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
     global g_mx, g_my, pvhwnd, pv_prev_button, pv_next_button, pv_thumbnail
     global pv_filmstrip
     if( hwnd == pv_filmstrip.hwnd ) {
-        FilmstripClick(lParam & 0xFFFF)
+        FilmstripBeginDrag(lParam & 0xFFFF)
+        return 0
+    }
+    if( hwnd == pv_thumbnail.handle ) {
+        BeginThumbnailMove()
         return 0
     }
     if( hwnd == pv_thumbnail.hwnd ) {
@@ -387,6 +395,7 @@ GuiUpdateNavigation()
     x := NumGet(point, 0, "Int"), y := NumGet(point, 4, "Int")
     FilmstripUpdate(hovered_window == pvhwnd, x, y, width, height)
     inside := pv_has_image && hovered_window == pvhwnd && hovered_control != pv_thumbnail.hwnd
+        && hovered_control != pv_thumbnail.handle
         && !pv_thumbnail.dragging && y < height - 108 && width >= 112 && height >= 88
         && x >= 0 && x < width && y >= 0 && y < height
     edge_width := Min(150, Floor(width / 3))
@@ -461,6 +470,7 @@ GuiRenderThumbnail()
     if( !pv_display_bitmap || client_w < 90 || client_h < 90
         || (pictureW <= client_w && pictureH <= client_h) ) {
         GuiControl, PV:Hide, % pv_thumbnail.hwnd
+        GuiControl, PV:Hide, % pv_thumbnail.handle
         EndThumbnailDrag()
         return
     }
@@ -480,7 +490,12 @@ GuiRenderThumbnail()
         pv_thumbnail.source := pv_display_bitmap
     }
     pv_thumbnail.w := w, pv_thumbnail.h := h
-    pv_thumbnail.x := client_w - w - 12, pv_thumbnail.y := Max(12, client_h - h - 124)
+    if( pv_thumbnail.custom_position ) {
+        pv_thumbnail.x := Max(0, Min(client_w - w, pv_thumbnail.x))
+        pv_thumbnail.y := Max(20, Min(client_h - h, pv_thumbnail.y))
+    } else {
+        pv_thumbnail.x := client_w - w - 12, pv_thumbnail.y := Max(20, client_h - h - 124)
+    }
     ; Map the intersection of the displayed image and the window to the preview.
     left := Max(0, Min(1, -pictureX / pictureW)) * w
     top := Max(0, Min(1, -pictureY / pictureH)) * h
@@ -507,6 +522,29 @@ GuiRenderThumbnail()
     GuiControl, PV:Move, % pv_thumbnail.hwnd, % "x" pv_thumbnail.x " y" pv_thumbnail.y " w" w " h" h
     DllCall("SetWindowPos", "Ptr", pv_thumbnail.hwnd, "Ptr", 0, "Int", 0, "Int", 0
         , "Int", 0, "Int", 0, "UInt", 0x53)
+    GuiControl, PV:Move, % pv_thumbnail.handle, % "x" pv_thumbnail.x " y" pv_thumbnail.y - 20 " w" w " h20"
+    DllCall("SetWindowPos", "Ptr", pv_thumbnail.handle, "Ptr", 0, "Int", 0, "Int", 0
+        , "Int", 0, "Int", 0, "UInt", 0x53)
+}
+
+BeginThumbnailMove()
+{
+    global pv_thumbnail
+    SetTimer, DragTimer, Off
+    pv_thumbnail.dragging := true, pv_thumbnail.moving := true
+    VarSetCapacity(point, 8, 0)
+    DllCall("GetCursorPos", "Ptr", &point)
+    pv_thumbnail.mouse_x := NumGet(point, 0, "Int"), pv_thumbnail.mouse_y := NumGet(point, 4, "Int")
+    pv_thumbnail.start_x := pv_thumbnail.x, pv_thumbnail.start_y := pv_thumbnail.y
+    DllCall("SetCapture", "Ptr", pv_thumbnail.handle)
+    SetTimer, ThumbnailDragTimer, 16
+}
+
+MoveThumbnailTo(x, y)
+{
+    global pv_thumbnail
+    pv_thumbnail.x := x, pv_thumbnail.y := y, pv_thumbnail.custom_position := true
+    GuiUpdateThumbnail()
 }
 
 BeginThumbnailDrag(x, y)
@@ -514,6 +552,7 @@ BeginThumbnailDrag(x, y)
     global pv_thumbnail
     SetTimer, DragTimer, Off
     pv_thumbnail.dragging := true
+    pv_thumbnail.moving := false
     ; Preserve the grab point inside the rectangle; clicks outside center it there.
     inside := x >= pv_thumbnail.left && x <= pv_thumbnail.right
         && y >= pv_thumbnail.top && y <= pv_thumbnail.bottom
@@ -533,6 +572,11 @@ ThumbnailDragTimer()
     }
     VarSetCapacity(point, 8, 0)
     DllCall("GetCursorPos", "Ptr", &point)
+    if( pv_thumbnail.moving ) {
+        MoveThumbnailTo(pv_thumbnail.start_x + NumGet(point, 0, "Int") - pv_thumbnail.mouse_x
+            , pv_thumbnail.start_y + NumGet(point, 4, "Int") - pv_thumbnail.mouse_y)
+        return
+    }
     DllCall("ScreenToClient", "Ptr", pvhwnd, "Ptr", &point)
     PanFromThumbnail(NumGet(point, 0, "Int") - pv_thumbnail.x, NumGet(point, 4, "Int") - pv_thumbnail.y)
 }
@@ -554,8 +598,15 @@ EndThumbnailDrag()
     SetTimer, ThumbnailDragTimer, Off
     if( IsObject(pv_thumbnail) && pv_thumbnail.dragging ) {
         pv_thumbnail.dragging := false
+        pv_thumbnail.moving := false
         DllCall("ReleaseCapture")
     }
+}
+
+GuiEndPointerDrag()
+{
+    EndThumbnailDrag()
+    FilmstripEndDrag()
 }
 
 ClearThumbnail()

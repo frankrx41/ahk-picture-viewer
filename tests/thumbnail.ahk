@@ -23,6 +23,17 @@ try {
     Assert(DllCall("IsWindowVisible", "Ptr", pv_thumbnail.hwnd), "Thumbnail visible for oversized image")
     GuiControlGet, thumb, PV:Pos, % pv_thumbnail.hwnd
     Assert(thumbX + thumbW = 788 && thumbY + thumbH = 476, "Thumbnail anchored bottom right")
+    BeginThumbnailMove()
+    MoveThumbnailTo(30, 100)
+    EndThumbnailDrag()
+    GuiUpdateThumbnail()
+    GuiControlGet, thumb, PV:Pos, % pv_thumbnail.hwnd
+    Assert(thumbX = 30 && thumbY = 100, "Navigator keeps dragged position after redraw")
+    MoveThumbnailTo(-100, 10000)
+    GuiControlGet, thumb, PV:Pos, % pv_thumbnail.hwnd
+    Assert(thumbX = 0 && thumbY + thumbH = 600, "Navigator stays inside the window")
+    pv_thumbnail.custom_position := false
+    GuiUpdateThumbnail()
     BeginThumbnailDrag(0, 0)
     PanFromThumbnail(-100, -100)
     EndThumbnailDrag()

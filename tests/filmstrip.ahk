@@ -20,6 +20,16 @@ GuiShowImage(GetCurrentImagePath(), "fit_window", true)
 try {
     SetTimer, GuiUpdateNavigation, Off
     FilmstripUpdate(true, 400, 590, 800, 600)
+    WinGet, old_state, MinMax, ahk_id %pvhwnd%
+    WinGetPos, , , old_w, old_h, ahk_id %pvhwnd%
+    MouseMove, 400, 300, 0
+    WM_LBUTTONDBLCLK(0, 790, 0x203, pv_filmstrip.hwnd)
+    WM_LBUTTONDBLCLK(0, 5, 0x203, pv_filmstrip.hwnd)
+    WM_LBUTTONDBLCLK(0, 0, 0x203, pv_prev_button)
+    WM_LBUTTONDBLCLK(0, 0, 0x203, pv_next_button)
+    WinGet, state, MinMax, ahk_id %pvhwnd%
+    WinGetPos, , , current_w, current_h, ahk_id %pvhwnd%
+    Assert(state = old_state && current_w = old_w && current_h = old_h, "Navigation double clicks preserve window size")
     Assert(pv_filmstrip.visible, "Bottom hover shows strip")
     Loop, 3
         FilmstripUpdate(true, 400, 550, 800, 600)
@@ -39,6 +49,13 @@ try {
     FilmstripScroll(1)
     FilmstripUpdate(true, 400, 550, 800, 600)
     Assert(pv_filmstrip.first > 1, "Scroll reaches later thumbnails")
+    selected := img_list_index
+    FilmstripBeginDrag(100)
+    first := pv_filmstrip.first
+    FilmstripDragBy(-192)
+    FilmstripEndDrag()
+    Assert(pv_filmstrip.first = first + 2, "Dragging strip scrolls thumbnails")
+    Assert(img_list_index = selected, "Dragging does not select an image")
     Loop, 10
         FilmstripScroll(1)
     FilmstripUpdate(true, 400, 550, 800, 600)
