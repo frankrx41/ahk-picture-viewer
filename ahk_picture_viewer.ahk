@@ -83,11 +83,13 @@ ExitFunc(exit_reason, exit_code)
 {
     global gdip_token, image_cache
     ClearThumbnail()
+    FilmstripClear()
     image_cache.Clear()
     Gdip_Shutdown( gdip_token )
 }
 
 #Include, %A_ScriptDir%\ahk_picture_viewer_gui.ahk
+#Include, %A_ScriptDir%\ahk_picture_viewer_filmstrip.ahk
 #Include, %A_ScriptDir%\ahk_picture_viewer_lib.ahk
 #Include, %A_ScriptDir%\ahk_picture_viewer_hotkey.ahk
 #Include, %A_ScriptDir%\ahk_picture_viewer_image.ahk

@@ -22,7 +22,7 @@ try {
     GuiShowImage(GetCurrentImagePath(), "1000%", true)
     Assert(DllCall("IsWindowVisible", "Ptr", pv_thumbnail.hwnd), "Thumbnail visible for oversized image")
     GuiControlGet, thumb, PV:Pos, % pv_thumbnail.hwnd
-    Assert(thumbX + thumbW = 788 && thumbY + thumbH = 588, "Thumbnail anchored bottom right")
+    Assert(thumbX + thumbW = 788 && thumbY + thumbH = 476, "Thumbnail anchored bottom right")
     BeginThumbnailDrag(0, 0)
     PanFromThumbnail(-100, -100)
     EndThumbnailDrag()
@@ -45,7 +45,7 @@ try {
     Gui, PV:Show, w640 h400
     Sleep, 100
     GuiControlGet, thumb, PV:Pos, % pv_thumbnail.hwnd
-    Assert(thumbX + thumbW = 628 && thumbY + thumbH = 388, "Thumbnail follows resized window")
+    Assert(thumbX + thumbW = 628 && thumbY + thumbH = 276, "Thumbnail follows resized window")
     GuiShowImage(GetCurrentImagePath(), "fit_window", true)
     Assert(!DllCall("IsWindowVisible", "Ptr", pv_thumbnail.hwnd), "Fit hides thumbnail")
     GuiShowImage(GetCurrentImagePath(), "1000%", true)
@@ -58,6 +58,7 @@ try {
 } finally {
     SetTimer, GuiUpdateNavigation, Off
     ClearThumbnail()
+    FilmstripClear()
     Gui, PV:Destroy
     image_cache.Clear()
     Gdip_Shutdown(token)
@@ -75,3 +76,5 @@ Assert(condition, message) {
 #Include %A_ScriptDir%\..\ahk_picture_viewer_menu.ahk
 #Include %A_ScriptDir%\..\ahk_picture_viewer_hotkey.ahk
 
+
+#Include %A_ScriptDir%\..\ahk_picture_viewer_filmstrip.ahk

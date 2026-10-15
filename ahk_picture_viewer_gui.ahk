@@ -57,6 +57,7 @@ GuiInitialize()
     Gui, PV:Font
     Gui, PV:Add, Text, Hidden 0x400010E x0 y0 w1 h1 hwndthumbnail_hwnd
     pv_thumbnail := {hwnd: thumbnail_hwnd, bitmap: 0, source: 0, dragging: false}
+    FilmstripInitialize()
     SetTimer, GuiUpdateNavigation, 50
     ; Gui, Add, StatusBar,, Bar's starting text (omit to start off empty).
     GroupAdd, AHKPV, ahk_id %pvhwnd%
@@ -313,6 +314,12 @@ GuiGetImageSize(pbitmap, image_scale, keep_center, ByRef x, ByRef y, ByRef w, By
 
 ; https://www.autohotkey.com/boards/viewtopic.php?t=110944
 WM_MOUSEWHEEL(wParam, lParam, msg, hwnd) {
+    MouseGetPos, , , , hovered_control, 2
+    global pv_filmstrip
+    if( hovered_control == pv_filmstrip.hwnd ) {
+        FilmstripScroll(((wParam >> 16) & 0xFFFF) >= 0x8000 ? 1 : -1)
+        return 0
+    }
     if (wParam > 0x7FFFFFFF)
         wParam := -(~wParam) - 1
     is_up := (wParam >> 16) / 120 == 1
@@ -343,6 +350,11 @@ WM_LBUTTONDBLCLK()
 ; https://www.autohotkey.com/boards/viewtopic.php?t=103848
 WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
     global g_mx, g_my, pvhwnd, pv_prev_button, pv_next_button, pv_thumbnail
+    global pv_filmstrip
+    if( hwnd == pv_filmstrip.hwnd ) {
+        FilmstripClick(lParam & 0xFFFF)
+        return 0
+    }
     if( hwnd == pv_thumbnail.hwnd ) {
         BeginThumbnailDrag(lParam & 0xFFFF, (lParam >> 16) & 0xFFFF)
         return 0
@@ -373,8 +385,9 @@ GuiUpdateNavigation()
     DllCall("GetCursorPos", "Ptr", &point)
     DllCall("ScreenToClient", "Ptr", pvhwnd, "Ptr", &point)
     x := NumGet(point, 0, "Int"), y := NumGet(point, 4, "Int")
+    FilmstripUpdate(hovered_window == pvhwnd, x, y, width, height)
     inside := pv_has_image && hovered_window == pvhwnd && hovered_control != pv_thumbnail.hwnd
-        && !pv_thumbnail.dragging && width >= 112 && height >= 88
+        && !pv_thumbnail.dragging && y < height - 108 && width >= 112 && height >= 88
         && x >= 0 && x < width && y >= 0 && y < height
     edge_width := Min(150, Floor(width / 3))
     for index, button in [pv_prev_button, pv_next_button] {
@@ -467,7 +480,7 @@ GuiRenderThumbnail()
         pv_thumbnail.source := pv_display_bitmap
     }
     pv_thumbnail.w := w, pv_thumbnail.h := h
-    pv_thumbnail.x := client_w - w - 12, pv_thumbnail.y := client_h - h - 12
+    pv_thumbnail.x := client_w - w - 12, pv_thumbnail.y := Max(12, client_h - h - 124)
     ; Map the intersection of the displayed image and the window to the preview.
     left := Max(0, Min(1, -pictureX / pictureW)) * w
     top := Max(0, Min(1, -pictureY / pictureH)) * h

@@ -31,6 +31,7 @@ Run the cache regression checks with AutoHotkey v1.1:
 AutoHotkey.exe /ErrorStdOut .\tests\bitmap_cache.ahk
 AutoHotkey.exe /ErrorStdOut .\tests\webp.ahk
 AutoHotkey.exe /ErrorStdOut .\tests\thumbnail.ahk
+AutoHotkey.exe /ErrorStdOut .\tests\filmstrip.ahk
 ```
 
 The WebP tests require the Windows WebP codec. Fixtures in `tests/fixtures/` are
@@ -75,6 +76,8 @@ Then you will get this when you right click an iamge file:
 | Mouse drag        | Move image                    |
 | Hover left/right edge | Show `<` / `>` buttons; click for previous/next image |
 | Drag bottom-right thumbnail | Pan the image using the blue visible-area rectangle; shown only when the displayed image exceeds the window |
+| Hover near bottom edge | Show the current folder's thumbnail strip; click a thumbnail to open that image |
+| Mouse wheel over thumbnail strip | Scroll through folder thumbnails (the strip's `<` / `>` arrows also scroll) |
 | Space             | Fit with / fit window         |
 | Enter             | Fit image                     |
 | '                 | Fit height                    |
