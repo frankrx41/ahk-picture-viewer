@@ -78,11 +78,10 @@ Base64Dec( ByRef B64, ByRef Bin ) {
 
 CopyImageToClipboard(file_path) {
     local
-    pBitmap := Gdip_CreateBitmapFromFile(file_path)
-    Gdip_SetBitmapToClipboard(pBitmap)
-    Gdip_DisposeImage(pBitmap)
-    Gdip_DisposeBitmap(pbitmap)
-    DeleteObject(pbitmap)
+    global image_cache
+    pBitmap := image_cache.Get(file_path)
+    if( pBitmap )
+        Gdip_SetBitmapToClipboard(pBitmap)
 
     DllCall("OpenClipboard", "UPtr", 0)
     DllCall("CloseClipboard")

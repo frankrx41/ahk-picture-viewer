@@ -4,6 +4,12 @@ This is a simple picture viewer tool written in AHK
 
 Support bmp, jpg, png and etc.
 
+WebP images (lossy, lossless, and transparent) are decoded using Windows Imaging
+Component. Install Microsoft's [WebP Image Extensions](https://apps.microsoft.com/detail/9pg2dk419drg)
+if it is not already present. Animated WebP displays its first frame. WebP images
+use the same unlimited, process-lifetime cache as other formats, and support
+zooming, navigation, and copying as an image.
+
 ## How to start
 
 Run "AHKPV.ahk"
@@ -23,7 +29,11 @@ Run the cache regression checks with AutoHotkey v1.1:
 
 ```powershell
 AutoHotkey.exe /ErrorStdOut .\tests\bitmap_cache.ahk
+AutoHotkey.exe /ErrorStdOut .\tests\webp.ahk
 ```
+
+The WebP tests require the Windows WebP codec. Fixtures in `tests/fixtures/` are
+generated solid-color images covering lossless, lossy, alpha, and animation.
 
 ## How to install
 

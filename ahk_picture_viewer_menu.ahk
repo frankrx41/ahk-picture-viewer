@@ -17,7 +17,9 @@ CopyToClipboard:
 return
 
 CopyAsHTML:
-    Clipboard := "<IMG src=""data:image/png;base64," GetFileBase64(GetCurrentImagePath()) """>"
+    SplitPath, % GetCurrentImagePath(), , , image_extension
+    image_mime := image_extension = "webp" ? "image/webp" : "image/png"
+    Clipboard := "<IMG src=""data:" image_mime ";base64," GetFileBase64(GetCurrentImagePath()) """>"
 return
 
 CopyAsMarkdown:
