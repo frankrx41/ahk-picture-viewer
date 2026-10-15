@@ -82,6 +82,7 @@ return
 ExitFunc(exit_reason, exit_code)
 {
     global gdip_token, image_cache
+    ClearThumbnail()
     image_cache.Clear()
     Gdip_Shutdown( gdip_token )
 }

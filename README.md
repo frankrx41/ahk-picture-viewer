@@ -30,10 +30,13 @@ Run the cache regression checks with AutoHotkey v1.1:
 ```powershell
 AutoHotkey.exe /ErrorStdOut .\tests\bitmap_cache.ahk
 AutoHotkey.exe /ErrorStdOut .\tests\webp.ahk
+AutoHotkey.exe /ErrorStdOut .\tests\thumbnail.ahk
 ```
 
 The WebP tests require the Windows WebP codec. Fixtures in `tests/fixtures/` are
 generated solid-color images covering lossless, lossy, alpha, and animation.
+The thumbnail test briefly opens a viewer window to check panning, resizing,
+visibility, and GDI resource cleanup.
 
 ## How to install
 
@@ -71,6 +74,7 @@ Then you will get this when you right click an iamge file:
 | Down              | Zoom out                      |
 | Mouse drag        | Move image                    |
 | Hover left/right edge | Show `<` / `>` buttons; click for previous/next image |
+| Drag bottom-right thumbnail | Pan the image using the blue visible-area rectangle; shown only when the displayed image exceeds the window |
 | Space             | Fit with / fit window         |
 | Enter             | Fit image                     |
 | '                 | Fit height                    |

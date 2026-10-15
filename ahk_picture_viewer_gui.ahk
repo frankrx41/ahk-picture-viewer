@@ -31,7 +31,7 @@ return
 GuiInitialize()
 {
     local
-    global pvhwnd, pvpic, pv_prev_button, pv_next_button
+    global pvhwnd, pvpic, pv_prev_button, pv_next_button, pv_thumbnail
 
     ; Menu
     open_file_fn := Func("OpenFile").Bind()
@@ -55,6 +55,8 @@ GuiInitialize()
     Gui, PV:Add, Button, Hidden -TabStop x12 y12 w44 h64 hwndpv_prev_button gPrevPicture, <
     Gui, PV:Add, Button, Hidden -TabStop x68 y12 w44 h64 hwndpv_next_button gNextPicture, >
     Gui, PV:Font
+    Gui, PV:Add, Text, Hidden 0x400010E x0 y0 w1 h1 hwndthumbnail_hwnd
+    pv_thumbnail := {hwnd: thumbnail_hwnd, bitmap: 0, source: 0, dragging: false}
     SetTimer, GuiUpdateNavigation, 50
     ; Gui, Add, StatusBar,, Bar's starting text (omit to start off empty).
     GroupAdd, AHKPV, ahk_id %pvhwnd%
@@ -64,6 +66,7 @@ GuiInitialize()
     OnMessage(0x05, "WM_SIZE")
     OnMessage(0x020A, "WM_MOUSEWHEEL")
     OnMessage(0x0203, "WM_LBUTTONDBLCLK")
+    OnMessage(0x0202, "EndThumbnailDrag")
 
     ; Right Menu
     Menu, right_menu, Add, &Next Picture, NextPicture
@@ -145,7 +148,7 @@ GuiUpdateTitle(image_path:="")
 
 GuiShowImage(image_path, zoom_method:="100%", keep_center:=false)
 {
-    global pvpic, image_cache, pv_has_image
+    global pvpic, image_cache, pv_has_image, pv_display_bitmap
     static in_process := false
 
     if( in_process ) {
@@ -158,6 +161,7 @@ GuiShowImage(image_path, zoom_method:="100%", keep_center:=false)
     ; Borrow the bitmap for this draw; only the cache disposes it.
     pbitmap := image_path ? image_cache.Get(image_path) : 0
     pv_has_image := !!pbitmap
+    pv_display_bitmap := pbitmap
     if( pbitmap ) {
         image_scale := GetZoomLevel(zoom_method, pbitmap)
         global min_width
@@ -179,6 +183,7 @@ GuiShowImage(image_path, zoom_method:="100%", keep_center:=false)
         if( old_bitmap )
             DeleteObject(old_bitmap)
     }
+    GuiUpdateThumbnail()
     in_process := false
     Critical, % was_critical
 }
@@ -337,7 +342,11 @@ WM_LBUTTONDBLCLK()
 
 ; https://www.autohotkey.com/boards/viewtopic.php?t=103848
 WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
-    global g_mx, g_my, pvhwnd, pv_prev_button, pv_next_button
+    global g_mx, g_my, pvhwnd, pv_prev_button, pv_next_button, pv_thumbnail
+    if( hwnd == pv_thumbnail.hwnd ) {
+        BeginThumbnailDrag(lParam & 0xFFFF, (lParam >> 16) & 0xFFFF)
+        return 0
+    }
     ; Native buttons dispatch their own click labels; do not also navigate or drag.
     if( hwnd == pv_prev_button || hwnd == pv_next_button )
         return
@@ -348,7 +357,7 @@ WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
 GuiUpdateNavigation()
 {
     local
-    global pvhwnd, pv_prev_button, pv_next_button, pv_has_image
+    global pvhwnd, pv_prev_button, pv_next_button, pv_has_image, pv_thumbnail
     static last_width := 0, last_height := 0
     if( !pv_prev_button || !pv_next_button )
         return
@@ -359,12 +368,13 @@ GuiUpdateNavigation()
         GuiControl, PV:Move, % pv_next_button, % "x" Max(12, width - 56) " y" y
         last_width := width, last_height := height
     }
-    MouseGetPos, , , hovered_window
+    MouseGetPos, , , hovered_window, hovered_control, 2
     VarSetCapacity(point, 8, 0)
     DllCall("GetCursorPos", "Ptr", &point)
     DllCall("ScreenToClient", "Ptr", pvhwnd, "Ptr", &point)
     x := NumGet(point, 0, "Int"), y := NumGet(point, 4, "Int")
-    inside := pv_has_image && hovered_window == pvhwnd && width >= 112 && height >= 88
+    inside := pv_has_image && hovered_window == pvhwnd && hovered_control != pv_thumbnail.hwnd
+        && !pv_thumbnail.dragging && width >= 112 && height >= 88
         && x >= 0 && x < width && y >= 0 && y < height
     edge_width := Min(150, Floor(width / 3))
     for index, button in [pv_prev_button, pv_next_button] {
@@ -408,10 +418,145 @@ MoveImage(offset_x, offset_y)
         pos_str := "w" gui_picturew " h" gui_pictureh " x" gui_picturex " y" gui_picturey
         ; GuiControl, PV:MoveDraw, pvpic, % pos_str
         GuiControl, PV:Move, pvpic, % pos_str
+        GuiUpdateThumbnail()
         ; DrawBox(posx, posy, posw, posh)
         ; GuiControl, PV:MoveDraw, transPic, % pos_str
         ; MsgBox, % offset_x "," offset_y "`n" g_my "," g_my "`n" o_mx "," o_my
     }
+}
+
+; The navigator owns only a small preview. Full-size images stay in image_cache.
+GuiUpdateThumbnail()
+{
+    was_critical := A_IsCritical
+    Critical, On
+    try {
+        GuiRenderThumbnail()
+    } finally {
+        Critical, % was_critical
+    }
+}
+
+GuiRenderThumbnail()
+{
+    local
+    global pvhwnd, pvpic, pv_thumbnail, pv_display_bitmap
+    if( !IsObject(pv_thumbnail) )
+        return
+    GetClientSize(pvhwnd, client_w, client_h)
+    GuiControlGet, picture, PV:Pos, pvpic
+    if( !pv_display_bitmap || client_w < 90 || client_h < 90
+        || (pictureW <= client_w && pictureH <= client_h) ) {
+        GuiControl, PV:Hide, % pv_thumbnail.hwnd
+        EndThumbnailDrag()
+        return
+    }
+    Gdip_GetImageDimensions(pv_display_bitmap, image_w, image_h)
+    scale := Min(Min(180, client_w / 3) / image_w, Min(120, client_h / 3) / image_h)
+    w := Max(1, Round(image_w * scale)), h := Max(1, Round(image_h * scale))
+    if( pv_thumbnail.source != pv_display_bitmap || pv_thumbnail.w != w || pv_thumbnail.h != h ) {
+        EndThumbnailDrag()
+        if( pv_thumbnail.bitmap )
+            Gdip_DisposeImage(pv_thumbnail.bitmap)
+        pv_thumbnail.bitmap := Gdip_CreateBitmap(w, h)
+        graphics := Gdip_GraphicsFromImage(pv_thumbnail.bitmap)
+        Gdip_GraphicsClear(graphics, 0xFF202020)
+        Gdip_SetInterpolationMode(graphics, 7)
+        Gdip_DrawImage(graphics, pv_display_bitmap, 0, 0, w, h, 0, 0, image_w, image_h)
+        Gdip_DeleteGraphics(graphics)
+        pv_thumbnail.source := pv_display_bitmap
+    }
+    pv_thumbnail.w := w, pv_thumbnail.h := h
+    pv_thumbnail.x := client_w - w - 12, pv_thumbnail.y := client_h - h - 12
+    ; Map the intersection of the displayed image and the window to the preview.
+    left := Max(0, Min(1, -pictureX / pictureW)) * w
+    top := Max(0, Min(1, -pictureY / pictureH)) * h
+    right := Max(0, Min(1, (client_w - pictureX) / pictureW)) * w
+    bottom := Max(0, Min(1, (client_h - pictureY) / pictureH)) * h
+    pv_thumbnail.left := left, pv_thumbnail.top := top
+    pv_thumbnail.right := right, pv_thumbnail.bottom := bottom
+    overlay := Gdip_CloneBitmap(pv_thumbnail.bitmap)
+    graphics := Gdip_GraphicsFromImage(overlay)
+    border := Gdip_CreatePen(0xFF888888, 1)
+    Gdip_DrawRectangle(graphics, border, 0, 0, w - 1, h - 1)
+    Gdip_DeletePen(border)
+    pen := Gdip_CreatePen(0xFF43C6FF, 2)
+    Gdip_DrawRectangle(graphics, pen, Max(1, left), Max(1, top)
+        , Max(1, right - left - 2), Max(1, bottom - top - 2))
+    Gdip_DeletePen(pen)
+    Gdip_DeleteGraphics(graphics)
+    bitmap := Gdip_CreateHBITMAPFromBitmap(overlay)
+    Gdip_DisposeImage(overlay)
+    SetImage(pv_thumbnail.hwnd, bitmap)
+    retained := DllCall("SendMessage", "Ptr", pv_thumbnail.hwnd, "UInt", 0x173, "Ptr", 0, "Ptr", 0, "Ptr")
+    if( bitmap && retained != bitmap )
+        DeleteObject(bitmap)
+    GuiControl, PV:Move, % pv_thumbnail.hwnd, % "x" pv_thumbnail.x " y" pv_thumbnail.y " w" w " h" h
+    DllCall("SetWindowPos", "Ptr", pv_thumbnail.hwnd, "Ptr", 0, "Int", 0, "Int", 0
+        , "Int", 0, "Int", 0, "UInt", 0x53)
+}
+
+BeginThumbnailDrag(x, y)
+{
+    global pv_thumbnail
+    SetTimer, DragTimer, Off
+    pv_thumbnail.dragging := true
+    ; Preserve the grab point inside the rectangle; clicks outside center it there.
+    inside := x >= pv_thumbnail.left && x <= pv_thumbnail.right
+        && y >= pv_thumbnail.top && y <= pv_thumbnail.bottom
+    pv_thumbnail.grab_x := inside ? x - pv_thumbnail.left : (pv_thumbnail.right - pv_thumbnail.left) / 2
+    pv_thumbnail.grab_y := inside ? y - pv_thumbnail.top : (pv_thumbnail.bottom - pv_thumbnail.top) / 2
+    DllCall("SetCapture", "Ptr", pv_thumbnail.hwnd)
+    PanFromThumbnail(x, y)
+    SetTimer, ThumbnailDragTimer, 16
+}
+
+ThumbnailDragTimer()
+{
+    global pvhwnd, pv_thumbnail
+    if( !pv_thumbnail.dragging || !GetKeyState("LButton", "P") ) {
+        EndThumbnailDrag()
+        return
+    }
+    VarSetCapacity(point, 8, 0)
+    DllCall("GetCursorPos", "Ptr", &point)
+    DllCall("ScreenToClient", "Ptr", pvhwnd, "Ptr", &point)
+    PanFromThumbnail(NumGet(point, 0, "Int") - pv_thumbnail.x, NumGet(point, 4, "Int") - pv_thumbnail.y)
+}
+
+PanFromThumbnail(x, y)
+{
+    global pvhwnd, pvpic, pv_thumbnail
+    GetClientSize(pvhwnd, client_w, client_h)
+    GuiControlGet, picture, PV:Pos, pvpic
+    image_x := pictureW > client_w ? Max(client_w - pictureW, Min(0, -(x - pv_thumbnail.grab_x) * pictureW / pv_thumbnail.w)) : (client_w - pictureW) / 2
+    image_y := pictureH > client_h ? Max(client_h - pictureH, Min(0, -(y - pv_thumbnail.grab_y) * pictureH / pv_thumbnail.h)) : (client_h - pictureH) / 2
+    GuiControl, PV:Move, pvpic, % "x" Round(image_x) " y" Round(image_y)
+    GuiUpdateThumbnail()
+}
+
+EndThumbnailDrag()
+{
+    global pv_thumbnail
+    SetTimer, ThumbnailDragTimer, Off
+    if( IsObject(pv_thumbnail) && pv_thumbnail.dragging ) {
+        pv_thumbnail.dragging := false
+        DllCall("ReleaseCapture")
+    }
+}
+
+ClearThumbnail()
+{
+    global pv_thumbnail
+    EndThumbnailDrag()
+    if( !IsObject(pv_thumbnail) )
+        return
+    if( pv_thumbnail.bitmap )
+        Gdip_DisposeImage(pv_thumbnail.bitmap)
+    old_bitmap := DllCall("SendMessage", "Ptr", pv_thumbnail.hwnd, "UInt", 0x172, "Ptr", 0, "Ptr", 0, "Ptr")
+    if( old_bitmap )
+        DeleteObject(old_bitmap)
+    pv_thumbnail.bitmap := 0, pv_thumbnail.source := 0
 }
 
 WM_RBUTTONDOWN()
