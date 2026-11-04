@@ -146,7 +146,11 @@ GetZoomLevel(method:="", bitmap:="")
     ; case "
     if( method == "auto" ) {
         last_zoom_param := method
-        last_zoom := 1
+        global min_width
+        Gdip_GetImageDimension(bitmap, img_w, img_h)
+        GetClientSize(PVhwnd, gui_w, gui_h)
+        ; Preserve the minimum display width only when the whole image fits.
+        last_zoom := Min(Max(1, min_width/img_w), gui_w/img_w, gui_h/img_h)
     }
     else
     if( method == "get" ) {

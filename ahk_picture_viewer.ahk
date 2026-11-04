@@ -32,7 +32,7 @@ ProcessArgs()
 GuiInitialize()
 if( GetCurrentImagePath() ) {
     GuiShow()
-    GuiShowImage(GetCurrentImagePath(), "100%", true)
+    GuiShowImage(GetCurrentImagePath(), "auto", true)
 } else {
     GuiShow("max")
 }

@@ -121,10 +121,29 @@ GuiShow( mode := "" )
             w := min_width
             h := h * image_scale
         }
-        ; MsgBox, % "3 " w "," h
+        ; Limit the client size to the monitor work area, including window chrome.
+        monitor := DllCall("MonitorFromWindow", "Ptr", pvhwnd, "UInt", 2, "Ptr")
+        VarSetCapacity(info, 40, 0)
+        NumPut(40, info, 0, "UInt")
+        DllCall("GetMonitorInfo", "Ptr", monitor, "Ptr", &info)
+        work_x := NumGet(info, 20, "Int"), work_y := NumGet(info, 24, "Int")
+        work_w := NumGet(info, 28, "Int") - work_x
+        work_h := NumGet(info, 32, "Int") - work_y
+        WinGet, style, Style, ahk_id %pvhwnd%
+        WinGet, ex_style, ExStyle, ahk_id %pvhwnd%
+        VarSetCapacity(frame, 16, 0)
+        DllCall("AdjustWindowRectEx", "Ptr", &frame, "UInt", style, "Int", true, "UInt", ex_style)
+        border_w := NumGet(frame, 8, "Int") - NumGet(frame, 0, "Int")
+        border_h := NumGet(frame, 12, "Int") - NumGet(frame, 4, "Int")
+        scale := Min(1, Max(1, work_w - border_w)/w, Max(1, work_h - border_h)/h)
+        w := Max(1, Floor(w * scale)), h := Max(1, Floor(h * scale))
+        ; Keep the menu on one row even for very narrow portrait images.
+        w := Max(w, Min(min_width, Max(1, work_w - border_w)))
         initial_width_height := "w" . w . " h" . h
         ; ToolTip, % initial_width_height
-        Gui, PV:Show, Center %initial_width_height%
+        x := work_x + Floor((work_w - w - border_w)/2)
+        y := work_y + Floor((work_h - h - border_h)/2)
+        Gui, PV:Show, x%x% y%y% %initial_width_height%
     }
     GuiUpdateTitle(GetCurrentImagePath())
 }
@@ -148,7 +167,7 @@ GuiUpdateTitle(image_path:="")
     Gui, PV:Show,, % script_title
 }
 
-GuiShowImage(image_path, zoom_method:="100%", keep_center:=false)
+GuiShowImage(image_path, zoom_method:="auto", keep_center:=false)
 {
     global pvpic, image_cache, pv_has_image, pv_display_bitmap
     static in_process := false
@@ -168,7 +187,7 @@ GuiShowImage(image_path, zoom_method:="100%", keep_center:=false)
         image_scale := GetZoomLevel(zoom_method, pbitmap)
         global min_width
         GuiGetImageSize(pbitmap, image_scale, keep_center, x, y, w, h)
-        if( (zoom_method == "100%" || zoom_method == "last") && w < min_width ) {
+        if( (zoom_method == "100%" || (zoom_method == "last" && GetZoomLevel("get_legacy") == "100%")) && w < min_width ) {
             Gdip_GetImageDimension(pbitmap, img_w, img_h)
             image_scale := min_width / img_w
             GuiGetImageSize(pbitmap, image_scale, keep_center, x, y, w, h)
