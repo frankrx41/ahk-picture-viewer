@@ -3,6 +3,7 @@
 #noenv
 #notrayicon
 #singleinstance, off
+SetBatchLines, -1
 SetTitleMatchMode, 2
 DetectHiddenWindows On
 CoordMode, Mouse, Client

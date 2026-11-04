@@ -215,35 +215,39 @@ ShowImageToControl(pvpic, pbitmap, w, h)
     if( !pbitmap || w < 1 || h < 1 )
         return
 
-    hDC := CreateCompatibleDC()
-    hbm := CreateDIBSection(w, -h, hdc)
-    obm := SelectObject(hDC, hbm)
-
-    hdc2 := CreateCompatibleDC()
-    hBitmap := Gdip_CreateARGBHBITMAPFromBitmap(pbitmap)
-    obm2 := SelectObject(hdc2, hBitmap)
-
-    Gdip_GetImageDimensions(pBitmap, Width, Height)
-    ; https://github.com/github/VisualStudio/blob/master/tools/Debugging%20Tools%20for%20Windows/winext/manifest/gdi32.h
-    SetStretchBltMode(hdc, 3)
-    StretchBlt(hdc, 0, 0, w, h, hdc2, 0, 0, width, height, 0x00CC0020 )
-    ; StretchDIBits(hDC, 0, 0, w, h, hdc2, 0, 0, width, height, 0x00CC0020 )
-    ; If pBrush
-
-    newBitmap := Gdip_CreateBitmapFromHBITMAP(hbm)
-    ; A selected bitmap cannot be deleted. Restore both DCs first.
-    SelectObject(hdc, obm)
-    SelectObject(hdc2, obm2)
-    DeleteObject(hbm)
-    DeleteObject(hBitmap)
-    DeleteDC(hdc)
-    DeleteDC(hdc2)
-
-    if( !newBitmap )
+    ; Read cached pixels directly instead of copying the full-resolution image
+    ; into another HBITMAP before scaling it down.
+    Gdip_GetImageDimensions(pbitmap, source_w, source_h)
+    if( Gdip_LockBits(pbitmap, 0, 0, source_w, source_h, stride, pixels, data, 1) )
         return
-
-    hBitmap := Gdip_CreateARGBHBITMAPFromBitmap(newBitmap)
-    Gdip_DisposeImage(newBitmap)
+    hdc := CreateCompatibleDC()
+    hBitmap := hdc ? CreateDIBSection(w, -h, hdc) : 0
+    if( !hBitmap ) {
+        if( hdc )
+            DeleteDC(hdc)
+        Gdip_UnlockBits(pbitmap, data)
+        return
+    }
+    previous := SelectObject(hdc, hBitmap)
+    VarSetCapacity(info, 40, 0)
+    NumPut(40, info, 0, "UInt")
+    NumPut(Abs(stride) // 4, info, 4, "Int")
+    NumPut(stride > 0 ? -source_h : source_h, info, 8, "Int")
+    NumPut(1, info, 12, "UShort")
+    NumPut(32, info, 14, "UShort")
+    if( stride < 0 )
+        pixels += stride * (source_h - 1)
+    SetStretchBltMode(hdc, 3)
+    copied := DllCall("StretchDIBits", "Ptr", hdc, "Int", 0, "Int", 0, "Int", w, "Int", h
+        , "Int", 0, "Int", 0, "Int", source_w, "Int", source_h
+        , "Ptr", pixels, "Ptr", &info, "UInt", 0, "UInt", 0x00CC0020, "Int")
+    SelectObject(hdc, previous)
+    DeleteDC(hdc)
+    Gdip_UnlockBits(pbitmap, data)
+    if( !copied || copied = -1 ) {
+        DeleteObject(hBitmap)
+        return
+    }
     GuiControlGet, hwnd, PV:hwnd, pvpic
     E := SetImage(hwnd, hBitmap)
     ; The static control may retain our bitmap or make an alpha-channel copy.
