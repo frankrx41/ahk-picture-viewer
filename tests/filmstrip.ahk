@@ -34,6 +34,8 @@ try {
     Loop, 3
         FilmstripUpdate(true, 400, 550, 800, 600)
     Assert(pv_filmstrip.previews.Count() = 2, "Folder thumbnails loaded")
+    FilmstripScrollbarSize(track_w, thumb_w, thumb_x, last_first)
+    Assert(thumb_w = track_w && last_first = 1, "Short lists have a full-width scrollbar thumb")
     Assert(image_cache.entries.Count() = 1, "Previewing does not populate full-size cache")
     ControlClick, x150 y40, % "ahk_id " pv_filmstrip.hwnd, , Left, 1, NA
     Sleep, 50
@@ -50,6 +52,19 @@ try {
     FilmstripUpdate(true, 400, 550, 800, 600)
     Assert(pv_filmstrip.first > 1, "Scroll reaches later thumbnails")
     selected := img_list_index
+    FilmstripScrollbarSize(track_w, thumb_w, thumb_x, last_first)
+    Assert(thumb_w < track_w, "Long lists have a movable scrollbar thumb")
+    FilmstripBeginDrag(thumb_x + thumb_w / 2, 102)
+    FilmstripDragBy(800)
+    FilmstripEndDrag()
+    Assert(pv_filmstrip.first = last_first, "Scrollbar drag reaches last image")
+    Assert(img_list_index = selected, "Scrollbar drag does not select an image")
+    FilmstripBeginDrag(4, 102)
+    FilmstripEndDrag()
+    Assert(pv_filmstrip.first = 1, "Scrollbar track click reaches first image")
+    Assert(img_list_index = selected, "Scrollbar click does not select an image")
+    FilmstripScroll(1)
+    selected := img_list_index
     FilmstripBeginDrag(100)
     first := pv_filmstrip.first
     FilmstripDragBy(-192)
@@ -60,7 +75,7 @@ try {
         FilmstripScroll(1)
     FilmstripUpdate(true, 400, 550, 800, 600)
     Assert(pv_filmstrip.first + pv_filmstrip.slots - 1 = 25, "Last folder item is reachable")
-    FilmstripClick(28 + (pv_filmstrip.slots - 1) * 96 + 20)
+    FilmstripClick(4 + (pv_filmstrip.slots - 1) * 96 + 20)
     Assert(img_list_index = 25, "Click last item")
     before := DllCall("GetGuiResources", "Ptr", DllCall("GetCurrentProcess", "Ptr"), "UInt", 0)
     Loop, 100

@@ -24,7 +24,7 @@ FilmstripUpdate(inside, x, y, width, height)
     was_critical := A_IsCritical
     Critical, On
     try {
-        slots := Max(1, Floor((width - 56) / 96))
+        slots := Max(1, Floor((width - 8) / 96))
         if( pv_filmstrip.list != img_path_list || pv_filmstrip.selected != img_list_index
             || !pv_filmstrip.visible ) {
             pv_filmstrip.first := Max(1, img_list_index - Floor(slots / 2))
@@ -87,14 +87,12 @@ FilmstripRender()
     bitmap := Gdip_CreateBitmap(pv_filmstrip.width, 108)
     graphics := Gdip_GraphicsFromImage(bitmap)
     Gdip_GraphicsClear(graphics, 0xFF202020)
-    Gdip_TextToGraphics(graphics, "<", "x4 y34 w24 h36 s24 cFFFFFFFF", "Segoe UI")
-    Gdip_TextToGraphics(graphics, ">", "x" pv_filmstrip.width - 26 " y34 w24 h36 s24 cFFFFFFFF", "Segoe UI")
     Loop, % pv_filmstrip.slots {
         index := pv_filmstrip.first + A_Index - 1
         if( index > img_path_list.Length() )
             break
         path := img_path_list[index]
-        x := 28 + (A_Index - 1) * 96
+        x := 4 + (A_Index - 1) * 96
         preview := pv_filmstrip.previews[path]
         if( preview )
             Gdip_DrawImage(graphics, preview, x, 8, 88, 72)
@@ -106,8 +104,15 @@ FilmstripRender()
             Gdip_DeletePen(pen)
         }
         SplitPath, path, name
-        Gdip_TextToGraphics(graphics, name, "x" x " y86 w88 h18 s10 NoWrap cFFFFFFFF", "Segoe UI")
+        Gdip_TextToGraphics(graphics, name, "x" x " y82 w88 h14 s9 NoWrap cFFFFFFFF", "Segoe UI")
     }
+    FilmstripScrollbarSize(track_w, thumb_w, thumb_x, last_first)
+    brush := Gdip_BrushCreateSolid(0xFF383838)
+    Gdip_FillRectangle(graphics, brush, 4, 99, track_w, 7)
+    Gdip_DeleteBrush(brush)
+    brush := Gdip_BrushCreateSolid(last_first > 1 ? 0xFFAAAAAA : 0xFF606060)
+    Gdip_FillRectangle(graphics, brush, thumb_x, 99, thumb_w, 7)
+    Gdip_DeleteBrush(brush)
     Gdip_DeleteGraphics(graphics)
     handle := Gdip_CreateHBITMAPFromBitmap(bitmap)
     Gdip_DisposeImage(bitmap)
@@ -129,13 +134,9 @@ FilmstripScroll(direction)
 FilmstripClick(x)
 {
     global pv_filmstrip, img_path_list, img_list_index
-    if( x < 28 || x >= pv_filmstrip.width - 28 ) {
-        FilmstripScroll(x < 28 ? -1 : 1)
-        return
-    }
-    slot := Floor((x - 28) / 96)
+    slot := Floor((x - 4) / 96)
     index := pv_filmstrip.first + slot
-    if( slot >= pv_filmstrip.slots || index > img_path_list.Length() )
+    if( slot < 0 || slot >= pv_filmstrip.slots || index > img_path_list.Length() )
         return
     img_list_index := index
     pv_filmstrip.selected := index
@@ -144,15 +145,37 @@ FilmstripClick(x)
     GuiUpdateTitle(GetCurrentImagePath())
 }
 
-FilmstripBeginDrag(x)
+FilmstripScrollbarSize(ByRef track_w, ByRef thumb_w, ByRef thumb_x, ByRef last_first)
+{
+    global pv_filmstrip, img_path_list
+    track_w := Max(1, pv_filmstrip.width - 8)
+    count := Max(1, img_path_list.Length())
+    last_first := Max(1, count - pv_filmstrip.slots + 1)
+    thumb_w := Min(track_w, Max(24, track_w * Min(1, pv_filmstrip.slots / count)))
+    thumb_x := 4 + (last_first > 1 ? (track_w - thumb_w) * (pv_filmstrip.first - 1) / (last_first - 1) : 0)
+}
+
+FilmstripScrollbarTo(x)
+{
+    global pv_filmstrip
+    FilmstripScrollbarSize(track_w, thumb_w, thumb_x, last_first)
+    fraction := track_w > thumb_w ? (x - 4 - pv_filmstrip.grab_offset) / (track_w - thumb_w) : 0
+    pv_filmstrip.first := 1 + Round(Max(0, Min(1, fraction)) * (last_first - 1))
+    pv_filmstrip.dirty := true
+}
+
+FilmstripBeginDrag(x, y:=0)
 {
     global pv_filmstrip
     SetTimer, DragTimer, Off
-    if( x < 28 || x >= pv_filmstrip.width - 28 ) {
-        FilmstripClick(x)
-        return
-    }
     pv_filmstrip.dragging := true, pv_filmstrip.moved := false
+    pv_filmstrip.scrollbar_drag := y >= 96
+    if( pv_filmstrip.scrollbar_drag ) {
+        FilmstripScrollbarSize(track_w, thumb_w, thumb_x, last_first)
+        pv_filmstrip.grab_offset := x >= thumb_x && x <= thumb_x + thumb_w ? x - thumb_x : thumb_w / 2
+        pv_filmstrip.moved := true
+        FilmstripScrollbarTo(x)
+    }
     pv_filmstrip.click_x := x, pv_filmstrip.start_first := pv_filmstrip.first
     VarSetCapacity(point, 8, 0)
     DllCall("GetCursorPos", "Ptr", &point)
@@ -164,6 +187,10 @@ FilmstripBeginDrag(x)
 FilmstripDragBy(delta)
 {
     global pv_filmstrip, img_path_list
+    if( pv_filmstrip.scrollbar_drag ) {
+        FilmstripScrollbarTo(pv_filmstrip.click_x + delta)
+        return
+    }
     if( Abs(delta) < 6 && !pv_filmstrip.moved )
         return
     pv_filmstrip.moved := true

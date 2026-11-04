@@ -78,7 +78,8 @@ Then you will get this when you right click an iamge file:
 | Drag bottom-right thumbnail | Pan the image using the blue visible-area rectangle; shown only when the displayed image exceeds the window |
 | Drag navigator's "Drag to move" handle | Reposition the image navigator; its position is kept while browsing and clamped inside the window |
 | Hover near bottom edge | Show the current folder's thumbnail strip; click a thumbnail to open that image |
-| Mouse wheel over thumbnail strip | Scroll through folder thumbnails (the strip's `<` / `>` arrows also scroll) |
+| Drag the scrollbar below the thumbnail strip | Scroll through folder thumbnails; click the track to jump to that position |
+| Mouse wheel over thumbnail strip | Scroll through folder thumbnails |
 | Drag thumbnail strip left/right | Scroll folder thumbnails without changing the open image |
 | Space             | Fit with / fit window         |
 | Enter             | Fit image                     |

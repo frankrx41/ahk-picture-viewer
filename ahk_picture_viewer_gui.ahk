@@ -379,7 +379,7 @@ WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
     global g_mx, g_my, pvhwnd, pv_prev_button, pv_next_button, pv_thumbnail
     global pv_filmstrip
     if( hwnd == pv_filmstrip.hwnd ) {
-        FilmstripBeginDrag(lParam & 0xFFFF)
+        FilmstripBeginDrag(lParam & 0xFFFF, (lParam >> 16) & 0xFFFF)
         return 0
     }
     if( hwnd == pv_thumbnail.handle ) {
