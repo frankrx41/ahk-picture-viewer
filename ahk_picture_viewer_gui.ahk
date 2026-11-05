@@ -46,7 +46,7 @@ GuiInitialize()
     Menu, file_menubar, Add, &Next, NextPicture
 
     Gui, PV:New, -DPIScale
-    Gui, Menu, file_menubar
+    global pv_menu_visible := false
     Gui, PV:Color, 0x1e1e1e
     Gui, PV:Margin, 0, 0
     GUI, PV:+Resize -MaxSize -MinSize +LastFound +Hwndpvhwnd
@@ -69,6 +69,9 @@ GuiInitialize()
     OnMessage(0x020A, "WM_MOUSEWHEEL")
     OnMessage(0x0203, "WM_LBUTTONDBLCLK")
     OnMessage(0x0202, "GuiEndPointerDrag")
+    OnMessage(0x112, "GuiMenuSystemCommand")
+    OnMessage(0x212, "GuiMenuExit")
+    OnMessage(0x06, "GuiMenuActivate")
 
     ; Right Menu
     Menu, right_menu, Add, &Next Picture, NextPicture
@@ -132,7 +135,7 @@ GuiShow( mode := "" )
         WinGet, style, Style, ahk_id %pvhwnd%
         WinGet, ex_style, ExStyle, ahk_id %pvhwnd%
         VarSetCapacity(frame, 16, 0)
-        DllCall("AdjustWindowRectEx", "Ptr", &frame, "UInt", style, "Int", true, "UInt", ex_style)
+        DllCall("AdjustWindowRectEx", "Ptr", &frame, "UInt", style, "Int", !!DllCall("GetMenu", "Ptr", pvhwnd, "Ptr"), "UInt", ex_style)
         border_w := NumGet(frame, 8, "Int") - NumGet(frame, 0, "Int")
         border_h := NumGet(frame, 12, "Int") - NumGet(frame, 4, "Int")
         scale := Min(1, Max(1, work_w - border_w)/w, Max(1, work_h - border_h)/h)
@@ -644,6 +647,42 @@ ClearThumbnail()
     if( old_bitmap )
         DeleteObject(old_bitmap)
     pv_thumbnail.bitmap := 0, pv_thumbnail.source := 0
+}
+
+GuiMenuSystemCommand(wParam, lParam, msg, hwnd)
+{
+    global pvhwnd, pv_menu_visible
+    ; SC_KEYMENU is sent by Windows for standalone Alt and menu mnemonics.
+    if( hwnd != pvhwnd || (wParam & 0xFFF0) != 0xF100 )
+        return
+    if( !pv_menu_visible ) {
+        pv_menu_visible := true
+        Gui, PV:Menu, file_menubar
+    }
+    ; Let Windows enter its native menu loop after attaching the bar.
+}
+
+GuiMenuExit(wParam, lParam, msg, hwnd)
+{
+    global pvhwnd, pv_menu_visible
+    if( hwnd == pvhwnd && pv_menu_visible )
+        SetTimer, GuiHideMenu, -1
+}
+
+GuiMenuActivate(wParam, lParam, msg, hwnd)
+{
+    global pvhwnd, pv_menu_visible
+    if( hwnd == pvhwnd && (wParam & 0xFFFF) == 0 && pv_menu_visible )
+        SetTimer, GuiHideMenu, -1
+}
+
+GuiHideMenu()
+{
+    global pv_menu_visible
+    if( !pv_menu_visible )
+        return
+    Gui, PV:Menu
+    pv_menu_visible := false
 }
 
 WM_RBUTTONDOWN()
