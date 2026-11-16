@@ -69,9 +69,9 @@ GuiInitialize()
     OnMessage(0x020A, "WM_MOUSEWHEEL")
     OnMessage(0x0203, "WM_LBUTTONDBLCLK")
     OnMessage(0x0202, "GuiEndPointerDrag")
-    OnMessage(0x112, "GuiMenuSystemCommand")
-    OnMessage(0x212, "GuiMenuExit")
-    OnMessage(0x06, "GuiMenuActivate")
+    ; OnMessage(0x112, "GuiMenuSystemCommand")
+    ; OnMessage(0x212, "GuiMenuExit")
+    ; OnMessage(0x06, "GuiMenuActivate")
 
     ; Right Menu
     Menu, right_menu, Add, &Next Picture, NextPicture

@@ -3,12 +3,12 @@
 ; Hotkeys
 #If WinActive("ahk_id " PVhwnd) && !pv_menu_visible
 
-~LAlt up::
-    if( A_PriorKey == "LAlt" ) {
-        GuiMenuSystemCommand(0xF100, 0, 0x112, PVhwnd)
-        PostMessage, 0x112, 0xF100, 0,, ahk_id %PVhwnd%
-    }
-return
+; ~LAlt up::
+;     if( A_PriorKey == "LAlt" ) {
+;         GuiMenuSystemCommand(0xF100, 0, 0x112, PVhwnd)
+;         PostMessage, 0x112, 0xF100, 0,, ahk_id %PVhwnd%
+;     }
+; return
 
 Right::
     Gosub, NextPicture
@@ -153,9 +153,9 @@ return
     Gosub, ViewFileProperties
 return
 
-#If WinActive("ahk_id " PVhwnd) && pv_menu_visible
-Esc::
-    DllCall("EndMenu")
-    GuiHideMenu()
-return
+; #If WinActive("ahk_id " PVhwnd) && pv_menu_visible
+; Esc::
+;     DllCall("EndMenu")
+;     GuiHideMenu()
+; return
 #If
