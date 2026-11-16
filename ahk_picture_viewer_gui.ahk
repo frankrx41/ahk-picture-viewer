@@ -78,6 +78,8 @@ GuiInitialize()
     Menu, right_menu, Add, &Prev Picture, PrevPicture
     Menu, right_menu, Add,
     Menu, right_menu, Add, &Open, % open_file_fn
+    cache_folder_fn := Func("LoadAllFolderFiles")
+    Menu, right_menu, Add, Load ALL Files in current folder`tCtrl+L, % cache_folder_fn
     Menu, right_menu, Add,
     Menu, right_menu, Add, Copy as &File, CopyAsFile
     Menu, right_menu, Add, Copy as &Image, CopyToClipboard
@@ -168,7 +170,7 @@ GuiUpdateTitle(image_path:="")
     } else {
         script_title := "AHK Picture Viewer"
     }
-    Gui, PV:Show,, % script_title
+    Gui, PV:Show,, % script_title . FolderCacheStatus()
 }
 
 GuiShowImage(image_path, zoom_method:="auto", keep_center:=false)

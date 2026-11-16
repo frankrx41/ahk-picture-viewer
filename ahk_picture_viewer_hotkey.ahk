@@ -22,6 +22,10 @@ return
     OpenFile()
 return
 
+^L::
+    LoadAllFolderFiles()
+return
+
 Esc::
     Gosub, Exit
 return

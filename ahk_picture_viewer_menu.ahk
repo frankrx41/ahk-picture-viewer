@@ -8,6 +8,7 @@ ReOpenFile:
 return
 
 CloseFile:
+    CancelFolderCache()
     GuiShowImage("")
     GuiUpdateTitle("")
 return

@@ -4,6 +4,7 @@ ImageListInitialize(file_path)
     global img_path_list, img_list_index
     global file_ext_list
 
+    CancelFolderCache()
     img_path_list := []
 
     SplitPath, file_path, file_name, file_dir, file_ext, file_name_no_ext
@@ -59,6 +60,59 @@ ImageListInitialize(file_path)
 GetCurrentImagePath() {
     global img_path_list, img_list_index
     return img_path_list[img_list_index]
+}
+
+CancelFolderCache()
+{
+    global folder_cache
+    SetTimer, CacheFolderTick, Off
+    folder_cache := ""
+}
+
+LoadAllFolderFiles()
+{
+    global folder_cache, img_path_list
+    if( !IsObject(img_path_list) || !img_path_list.Length() )
+        return
+    CancelFolderCache()
+    folder_cache := {list: img_path_list, done: 0, failed: 0, total: img_path_list.Length(), active: true}
+    GuiUpdateTitle(GetCurrentImagePath())
+    SetTimer, CacheFolderTick, -50
+}
+
+CacheFolderTick()
+{
+    global folder_cache, img_path_list, image_cache
+    was_critical := A_IsCritical
+    Critical, On
+    try {
+        if( !IsObject(folder_cache) || !folder_cache.active )
+            return
+        if( folder_cache.list != img_path_list ) {
+            CancelFolderCache()
+            return
+        }
+        path := folder_cache.list[folder_cache.done + 1]
+        if( !image_cache.Get(path) )
+            folder_cache.failed += 1
+        folder_cache.done += 1
+        folder_cache.active := folder_cache.done < folder_cache.total
+        GuiUpdateTitle(GetCurrentImagePath())
+        if( folder_cache.active )
+            SetTimer, CacheFolderTick, -50
+    } finally {
+        Critical, % was_critical
+    }
+}
+
+FolderCacheStatus()
+{
+    global folder_cache
+    if( !IsObject(folder_cache) )
+        return ""
+    return " | " (folder_cache.active ? "Caching " : "Cached ")
+        . (folder_cache.done - folder_cache.failed) "/" folder_cache.total
+        . (folder_cache.failed ? " (" folder_cache.failed " failed)" : "")
 }
 
 PreloadNextImage()
