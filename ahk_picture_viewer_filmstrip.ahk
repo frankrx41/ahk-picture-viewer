@@ -78,10 +78,9 @@ FilmstripUpdate(inside, x, y, width, height)
 FilmstripPreview(path)
 {
     global image_cache
-    borrowed := image_cache.entries.HasKey(path)
-    SplitPath, path, , , extension
-    source := borrowed ? image_cache.entries[path].bitmap
-        : (extension = "webp" ? LoadWebPBitmap(path) : Gdip_CreateBitmapFromFile(path))
+    ; Keep the full decoded image so opening a completed preview needs no I/O.
+    ; The cache owns this handle; the preview only borrows it.
+    source := image_cache.Get(path)
     if( source <= 0 )
         return 0
     Gdip_GetImageDimensions(source, w, h)
@@ -92,8 +91,6 @@ FilmstripPreview(path)
     Gdip_SetInterpolationMode(graphics, 7)
     Gdip_DrawImage(graphics, source, (88 - w * scale) / 2, (72 - h * scale) / 2, w * scale, h * scale, 0, 0, w, h)
     Gdip_DeleteGraphics(graphics)
-    if( !borrowed )
-        Gdip_DisposeImage(source)
     return bitmap
 }
 

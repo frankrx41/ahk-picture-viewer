@@ -93,11 +93,26 @@ try {
     GuiShowImage("")
     FilmstripUpdate(true, 300, 390, 640, 400)
     Assert(!pv_filmstrip.visible, "Close hides strip")
+    ; A thumbnail-only visit must retain the full image for subsequent opening.
+    test_path := A_Temp "\ahkpv-preview-" DllCall("GetCurrentProcessId") ".png"
+    FileCopy, % A_ScriptDir "\..\assets\clip_20230928_084336.png", % test_path
+    Assert(!ErrorLevel, "Create disposable thumbnail source")
+    preview := FilmstripPreview(test_path)
+    Assert(preview && image_cache.entries.HasKey(test_path), "Preview caches full image")
+    cached := image_cache.entries[test_path].bitmap
+    Gdip_DisposeImage(preview)
+    FileDelete, % test_path
+    Assert(!ErrorLevel, "Preview releases source file")
+    GuiShowImage(test_path)
+    Assert(pv_display_bitmap = cached, "Opening preview reuses bitmap even without source file")
     FileAppend, PASS: folder strip checks`n, *
 } catch error {
     exit_code := 1
     FileAppend, % "FAIL: " error.Message "`n", *
 } finally {
+    SetTimer, PreloadNextImage, Off
+    if( test_path )
+        FileDelete, % test_path
     SetTimer, GuiUpdateNavigation, Off
     ClearThumbnail()
     FilmstripClear()
