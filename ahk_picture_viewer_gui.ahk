@@ -486,10 +486,11 @@ GuiMoveImageControl(x, y, repaint:=true)
 {
     global pvpic, pvhwnd
     GuiControl, PV:Move, pvpic, % "x" Round(x) " y" Round(y)
-    ; Finish the composite paint before returning to timers/preloading.
-    ; RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN | RDW_UPDATENOW.
+    ; Flush only regions invalidated by the move. Invalidating and erasing
+    ; the entire window here makes all bitmap controls flash on every frame.
+    ; RDW_ALLCHILDREN | RDW_UPDATENOW (no RDW_INVALIDATE/RDW_ERASE).
     if( repaint )
-        DllCall("RedrawWindow", "Ptr", pvhwnd, "Ptr", 0, "Ptr", 0, "UInt", 0x185)
+        DllCall("RedrawWindow", "Ptr", pvhwnd, "Ptr", 0, "Ptr", 0, "UInt", 0x180)
 }
 
 ; The navigator owns only a small preview. Full-size images stay in image_cache.
@@ -500,8 +501,8 @@ GuiUpdateThumbnail()
     Critical, On
     try {
         GuiRenderThumbnail()
-        ; Present the image position and navigator overlay in the same paint.
-        DllCall("RedrawWindow", "Ptr", pvhwnd, "Ptr", 0, "Ptr", 0, "UInt", 0x185)
+        ; Finish pending paints without erasing otherwise unchanged controls.
+        DllCall("RedrawWindow", "Ptr", pvhwnd, "Ptr", 0, "Ptr", 0, "UInt", 0x180)
     } finally {
         Critical, % was_critical
     }
