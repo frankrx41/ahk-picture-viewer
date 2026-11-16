@@ -43,6 +43,13 @@ class BitmapCache
             return 0
         Gdip_GetImageDimensions(source, width, height)
         bytes := width * height * 4
+        ; WIC already decoded WebP into independent, GDI+-owned pixels and
+        ; closed the file. Keep that bitmap instead of copying the full image.
+        if( extension = "webp" ) {
+            this.entries[path] := {bitmap: source, bytes: bytes}
+            this.bytes += bytes
+            return source
+        }
         ; Copy into independent pixels so cached images do not lock source files.
         bitmap := Gdip_CreateBitmap(width, height)
         graphics := bitmap ? Gdip_GraphicsFromImage(bitmap) : 0
