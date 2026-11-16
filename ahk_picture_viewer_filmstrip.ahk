@@ -8,7 +8,7 @@ FilmstripInitialize()
 
 FilmstripUpdate(inside, x, y, width, height)
 {
-    global pv_filmstrip, pv_has_image, pv_thumbnail, img_path_list, img_list_index
+    global pv_filmstrip, pv_has_image, pv_thumbnail, img_path_list, img_list_index, image_cache
     if( !IsObject(pv_filmstrip) )
         return
     show := inside && pv_has_image && !pv_thumbnail.dragging && width >= 160 && height >= 160
@@ -36,8 +36,24 @@ FilmstripUpdate(inside, x, y, width, height)
             pv_filmstrip.dirty := true
         pv_filmstrip.width := width, pv_filmstrip.height := height, pv_filmstrip.slots := slots
         pv_filmstrip.first := Min(pv_filmstrip.first, Max(1, img_path_list.Length() - slots + 1))
-        ; Decode one visible preview per tick so large folders do not load at once.
+        ; Build every visible cached preview before doing any disk decoding.
+        ; Previously even already-viewed images waited one timer tick each.
+        cached_added := false
         Loop, % slots {
+            index := pv_filmstrip.first + A_Index - 1
+            if( index > img_path_list.Length() )
+                break
+            path := img_path_list[index]
+            if( !pv_filmstrip.previews.HasKey(path) && image_cache.entries.HasKey(path) ) {
+                pv_filmstrip.previews[path] := FilmstripPreview(path)
+                pv_filmstrip.dirty := true
+                cached_added := true
+            }
+        }
+        ; Paint cached previews first; limit uncached decoding to one per tick.
+        Loop, % slots {
+            if( cached_added )
+                break
             index := pv_filmstrip.first + A_Index - 1
             if( index > img_path_list.Length() )
                 break

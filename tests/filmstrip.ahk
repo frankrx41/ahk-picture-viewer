@@ -24,6 +24,7 @@ cached_before_previews := image_cache.entries.Count()
 try {
     SetTimer, GuiUpdateNavigation, Off
     FilmstripUpdate(true, 400, 590, 800, 600)
+    Assert(pv_filmstrip.previews.Count() = 2, "All visible cached previews appear on first update")
     WinGet, old_state, MinMax, ahk_id %pvhwnd%
     WinGetPos, , , old_w, old_h, ahk_id %pvhwnd%
     MouseMove, 400, 300, 0
