@@ -43,6 +43,19 @@ try {
     GuiControlGet, picture, PV:Pos, pvpic
     Assert(pictureX = 5 && pictureY = 5, "Immediate paint preserves drag coordinates")
     Assert(!DllCall("GetUpdateRect", "Ptr", hwnd, "Ptr", 0, "Int", 0), "Image has no pending paint after drag")
+    ; Exercise a 96 MB displayed bitmap, not just the tiny pixel fixture.
+    ShowImageToControl(pvpic, bitmap, 6000, 4000)
+    before := DllCall("GetGuiResources", "Ptr", DllCall("GetCurrentProcess", "Ptr"), "UInt", 0)
+    Loop, 12 {
+        GuiMoveImageControl(-100 * A_Index, -50 * A_Index)
+        Assert(!DllCall("GetUpdateRect", "Ptr", hwnd, "Ptr", 0, "Int", 0), "Large image finishes each pan paint")
+        dc := DllCall("GetDC", "Ptr", hwnd, "Ptr")
+        color := DllCall("GetPixel", "Ptr", dc, "Int", 100 * A_Index + 250, "Int", 50 * A_Index + 200, "UInt")
+        DllCall("ReleaseDC", "Ptr", hwnd, "Ptr", dc)
+        Assert(color = 0x0000FF, "Large-image visible pixels remain red after pan")
+    }
+    after := DllCall("GetGuiResources", "Ptr", DllCall("GetCurrentProcess", "Ptr"), "UInt", 0)
+    Assert(after = before, "Large-image pans do not leak GDI handles")
     FileAppend, PASS: direct rendering pixels and resource ownership`n, *
 } catch error {
     exit_code := 1

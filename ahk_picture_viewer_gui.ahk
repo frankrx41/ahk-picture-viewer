@@ -485,10 +485,14 @@ MoveImage(offset_x, offset_y)
 GuiMoveImageControl(x, y, repaint:=true)
 {
     global pvpic, pvhwnd
-    GuiControl, PV:Move, pvpic, % "x" Round(x) " y" Round(y)
-    ; Flush only regions invalidated by the move. Invalidating and erasing
-    ; the entire window here makes all bitmap controls flash on every frame.
-    ; RDW_ALLCHILDREN | RDW_UPDATENOW (no RDW_INVALIDATE/RDW_ERASE).
+    GuiControlGet, image_hwnd, PV:Hwnd, pvpic
+    ; Do not let Windows copy a partially visible bitmap control while moving
+    ; it or paint the exposed background before the navigator is ready.
+    ; NOSIZE | NOZORDER | NOREDRAW | NOACTIVATE | NOCOPYBITS.
+    DllCall("SetWindowPos", "Ptr", image_hwnd, "Ptr", 0, "Int", Round(x), "Int", Round(y)
+        , "Int", 0, "Int", 0, "UInt", 0x11D)
+    ; Queue one complete composite frame; NOREDRAW also suppresses invalidation.
+    DllCall("RedrawWindow", "Ptr", pvhwnd, "Ptr", 0, "Ptr", 0, "UInt", 0x85)
     if( repaint )
         DllCall("RedrawWindow", "Ptr", pvhwnd, "Ptr", 0, "Ptr", 0, "UInt", 0x180)
 }
