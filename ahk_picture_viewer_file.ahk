@@ -61,6 +61,13 @@ GetCurrentImagePath() {
     return img_path_list[img_list_index]
 }
 
+GetCurrentImageName()
+{
+    filePath := GetCurrentImagePath()
+    SplitPath, filePath, fileName
+    return fileName
+}
+
 GetFileIndexText() {
     global img_path_list, img_list_index
     return Format("{}/{}", img_list_index, img_path_list.Length())

@@ -36,6 +36,10 @@ CopyAsPath:
     Clipboard := GetCurrentImagePath()
 return
 
+CopyAsName:
+    Clipboard := GetCurrentImageName()
+return
+
 ViewFileProperties:
     Run, % "Properties """ GetCurrentImagePath() """"
 return

@@ -85,6 +85,7 @@ GuiInitialize()
     Menu, right_menu, Add, Copy as &Markdown, CopyAsMarkdown
     Menu, right_menu, Add, Copy as &Text, CopyAsText
     Menu, right_menu, Add, Copy as &Path, CopyAsPath
+    Menu, right_menu, Add, Copy as &Name, CopyAsName
     Menu, right_menu, Add,
     Menu, right_menu, Add, P&roperties, ViewFileProperties
     ; Menu, right_menu, Icon, %A_ScriptDir%/AHKPV.ico, , 1 
