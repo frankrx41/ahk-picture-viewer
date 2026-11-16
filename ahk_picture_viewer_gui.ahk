@@ -509,7 +509,7 @@ GuiRenderThumbnail()
         return
     }
     Gdip_GetImageDimensions(pv_display_bitmap, image_w, image_h)
-    scale := Min(Min(180, client_w / 3) / image_w, Min(120, client_h / 3) / image_h)
+    scale := Min(Min(180, client_w / 3) / image_w, Min(160, client_h / 3) / image_h)
     w := Max(1, Round(image_w * scale)), h := Max(1, Round(image_h * scale))
     if( pv_thumbnail.source != pv_display_bitmap || pv_thumbnail.w != w || pv_thumbnail.h != h ) {
         EndThumbnailDrag()

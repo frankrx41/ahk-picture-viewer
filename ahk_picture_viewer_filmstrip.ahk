@@ -13,7 +13,7 @@ FilmstripUpdate(inside, x, y, width, height)
         return
     show := inside && pv_has_image && !pv_thumbnail.dragging && width >= 160 && height >= 160
         && x >= 0 && x < width && y < height
-        && y >= height - (pv_filmstrip.visible ? 108 : 32)
+        && y >= height - (pv_filmstrip.visible ? 108 : 80)
     if( pv_filmstrip.dragging && pv_has_image )
         show := true
     if( !show ) {
