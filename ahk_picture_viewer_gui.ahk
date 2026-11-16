@@ -309,8 +309,9 @@ GuiGetImageSize(pbitmap, image_scale, keep_center, ByRef x, ByRef y, ByRef w, By
         gui_picturey := gui_picturey + (mcY - gui_picturey) * (1 - image_scale2)
     }
 
-    ; displayed inside the window
-    if( gui_picturew <= gui_w ) {
+    ; Mouse-anchored zoom may leave margins or clipped edges. Clamping here
+    ; would move the pixel under the cursor when crossing a fit threshold.
+    if( keep_center && gui_picturew <= gui_w ) {
         if( gui_picturex < 0 ) {
             gui_picturex := 0
         }
@@ -319,7 +320,7 @@ GuiGetImageSize(pbitmap, image_scale, keep_center, ByRef x, ByRef y, ByRef w, By
         }
     }
 
-    if( gui_pictureh <= gui_h ) {
+    if( keep_center && gui_pictureh <= gui_h ) {
         if( gui_picturey < 0 ) {
             gui_picturey := 0
         }
