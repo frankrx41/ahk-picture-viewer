@@ -43,7 +43,7 @@ return
 
 Space::
     if( GetZoomLevel("get_legacy") != "fit_width" ) {
-        GuiShowImage(GetCurrentImagePath(), "fit_width")
+        GuiShowImage(GetCurrentImagePath(), "fit_width", true)
     } else {
         GuiShowImage(GetCurrentImagePath(), "fit_window", true)
     }
