@@ -49,7 +49,9 @@ GuiInitialize()
     global pv_menu_visible := false
     Gui, PV:Color, 0x1e1e1e
     Gui, PV:Margin, 0, 0
-    GUI, PV:+Resize -MaxSize -MinSize +LastFound +Hwndpvhwnd
+    ; Composite parent and child paints into one frame while the image moves.
+    ; Otherwise newly exposed edges can show the erased background first.
+    GUI, PV:+Resize -MaxSize -MinSize +LastFound +Hwndpvhwnd +E0x02000000
     Gui, PV:Add, Text, 0x400000E vpvpic   ; SS_BITMAP | WS_CLIPSIBLINGS
     Gui, PV:Font, s24, Segoe UI
     Gui, PV:Add, Button, Hidden -TabStop x12 y12 w44 h64 hwndpv_prev_button gPrevPicture, <
@@ -472,13 +474,21 @@ MoveImage(offset_x, offset_y)
         gui_picturex += offset_x
         gui_picturey += offset_y
         pos_str := "w" gui_picturew " h" gui_pictureh " x" gui_picturex " y" gui_picturey
-        ; GuiControl, PV:MoveDraw, pvpic, % pos_str
-        GuiControl, PV:Move, pvpic, % pos_str
+        GuiMoveImageControl(gui_picturex, gui_picturey)
         GuiUpdateThumbnail()
         ; DrawBox(posx, posy, posw, posh)
         ; GuiControl, PV:MoveDraw, transPic, % pos_str
         ; MsgBox, % offset_x "," offset_y "`n" g_my "," g_my "`n" o_mx "," o_my
     }
+}
+
+GuiMoveImageControl(x, y)
+{
+    global pvpic, pvhwnd
+    GuiControl, PV:Move, pvpic, % "x" Round(x) " y" Round(y)
+    ; Finish the composite paint before returning to timers/preloading.
+    ; RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN | RDW_UPDATENOW.
+    DllCall("RedrawWindow", "Ptr", pvhwnd, "Ptr", 0, "Ptr", 0, "UInt", 0x185)
 }
 
 ; The navigator owns only a small preview. Full-size images stay in image_cache.
@@ -622,7 +632,7 @@ PanFromThumbnail(x, y)
     GuiControlGet, picture, PV:Pos, pvpic
     image_x := pictureW > client_w ? Max(client_w - pictureW, Min(0, -(x - pv_thumbnail.grab_x) * pictureW / pv_thumbnail.w)) : (client_w - pictureW) / 2
     image_y := pictureH > client_h ? Max(client_h - pictureH, Min(0, -(y - pv_thumbnail.grab_y) * pictureH / pv_thumbnail.h)) : (client_h - pictureH) / 2
-    GuiControl, PV:Move, pvpic, % "x" Round(image_x) " y" Round(image_y)
+    GuiMoveImageControl(image_x, image_y)
     GuiUpdateThumbnail()
 }
 

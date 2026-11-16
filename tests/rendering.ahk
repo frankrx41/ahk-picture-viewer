@@ -19,6 +19,8 @@ Gdip_SetPixel(bitmap, 1, 0, 0xFF00FF00)
 Gdip_SetPixel(bitmap, 0, 1, 0xFF0000FF)
 Gdip_SetPixel(bitmap, 1, 1, 0xFFFFFFFF)
 try {
+    WinGet, ex_style, ExStyle, ahk_id %pvhwnd%
+    Assert(ex_style & 0x02000000, "Window composites image and background paints")
     ShowImageToControl(pvpic, bitmap, 20, 20)
     GuiControlGet, hwnd, PV:hwnd, pvpic
     handle := DllCall("SendMessage", "Ptr", hwnd, "UInt", 0x173, "Ptr", 0, "Ptr", 0, "Ptr")
@@ -34,6 +36,13 @@ try {
     after := DllCall("GetGuiResources", "Ptr", DllCall("GetCurrentProcess", "Ptr"), "UInt", 0)
     Assert(after = before, "Repeated renders do not leak GDI handles")
     Assert(Gdip_GetPixel(bitmap, 0, 0) = 0xFFFF0000, "Cached source remains intact")
+    Loop, 20 {
+        GuiMoveImageControl(-10, -10)
+        GuiMoveImageControl(5, 5)
+    }
+    GuiControlGet, picture, PV:Pos, pvpic
+    Assert(pictureX = 5 && pictureY = 5, "Immediate paint preserves drag coordinates")
+    Assert(!DllCall("GetUpdateRect", "Ptr", hwnd, "Ptr", 0, "Int", 0), "Image has no pending paint after drag")
     FileAppend, PASS: direct rendering pixels and resource ownership`n, *
 } catch error {
     exit_code := 1
