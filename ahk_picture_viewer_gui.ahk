@@ -209,6 +209,10 @@ GuiShowImage(image_path, zoom_method:="auto", keep_center:=false)
             DeleteObject(old_bitmap)
     }
     GuiUpdateThumbnail()
+    ; Allow the current frame to paint before decoding the next image.
+    SetTimer, PreloadNextImage, Off
+    if( pv_has_image )
+        SetTimer, PreloadNextImage, -10
     in_process := false
     Critical, % was_critical
 }

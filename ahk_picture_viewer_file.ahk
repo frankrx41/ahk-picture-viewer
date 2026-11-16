@@ -61,6 +61,29 @@ GetCurrentImagePath() {
     return img_path_list[img_list_index]
 }
 
+PreloadNextImage()
+{
+    local
+    global img_path_list, img_list_index, image_cache, pv_has_image
+
+    ; AHK v1 timers share the GUI thread. Buffer navigation until the cache
+    ; entry is complete; never wait in an interrupting hotkey for this timer.
+    ; Protect target selection too, so navigation cannot change the list/index
+    ; between choosing the next image and starting its decode.
+    was_critical := A_IsCritical
+    Critical, On
+    try {
+        if( !pv_has_image || !img_list_index || img_path_list.Length() < 2 )
+            return
+        next_index := img_list_index >= img_path_list.Length() ? 1 : img_list_index + 1
+        next_path := img_path_list[next_index]
+        if( next_path != "" && FileExist(next_path) )
+            image_cache.Get(next_path)
+    } finally {
+        Critical, % was_critical
+    }
+}
+
 GetCurrentImageName()
 {
     filePath := GetCurrentImagePath()

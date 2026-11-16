@@ -17,6 +17,10 @@ Gui, PV:Show, w800 h600, Folder strip test
 WinActivate, ahk_id %pvhwnd%
 WinWaitActive, ahk_id %pvhwnd%, , 2
 GuiShowImage(GetCurrentImagePath(), "fit_window", true)
+; Isolate preview allocation from the independent next-image preload.
+SetTimer, PreloadNextImage, Off
+PreloadNextImage()
+cached_before_previews := image_cache.entries.Count()
 try {
     SetTimer, GuiUpdateNavigation, Off
     FilmstripUpdate(true, 400, 590, 800, 600)
@@ -36,7 +40,7 @@ try {
     Assert(pv_filmstrip.previews.Count() = 2, "Folder thumbnails loaded")
     FilmstripScrollbarSize(track_w, thumb_w, thumb_x, last_first)
     Assert(thumb_w = track_w && last_first = 1, "Short lists have a full-width scrollbar thumb")
-    Assert(image_cache.entries.Count() = 1, "Previewing does not populate full-size cache")
+    Assert(image_cache.entries.Count() = cached_before_previews, "Previewing does not populate full-size cache")
     ControlClick, x150 y40, % "ahk_id " pv_filmstrip.hwnd, , Left, 1, NA
     Sleep, 50
     Assert(img_list_index = 2, "Click opens the selected file")
