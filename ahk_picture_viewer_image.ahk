@@ -38,18 +38,21 @@ class BitmapCache
             return this.entries[path].bitmap
 
         SplitPath, path, , , extension
-        source := extension = "webp" ? LoadWebPBitmap(path) : Gdip_CreateBitmapFromFile(path)
-        if( source <= 0 )
-            return 0
-        Gdip_GetImageDimensions(source, width, height)
-        bytes := width * height * 4
-        ; WIC already decoded WebP into independent, GDI+-owned pixels and
-        ; closed the file. Keep that bitmap instead of copying the full image.
-        if( extension = "webp" ) {
+        ; Decode directly into owned pixels with WIC where a codec is available.
+        ; Keep the GDI+ path as a fallback for other supported formats.
+        source := LoadWICBitmap(path)
+        if( source > 0 ) {
+            Gdip_GetImageDimensions(source, width, height)
+            bytes := width * height * 4
             this.entries[path] := {bitmap: source, bytes: bytes}
             this.bytes += bytes
             return source
         }
+        source := extension = "webp" ? 0 : Gdip_CreateBitmapFromFile(path)
+        if( source <= 0 )
+            return 0
+        Gdip_GetImageDimensions(source, width, height)
+        bytes := width * height * 4
         ; Copy into independent pixels so cached images do not lock source files.
         bitmap := Gdip_CreateBitmap(width, height)
         graphics := bitmap ? Gdip_GraphicsFromImage(bitmap) : 0
@@ -85,9 +88,15 @@ class BitmapCache
     }
 }
 
-; Decode the first WebP frame through the installed Windows WIC codec.
-; Returns an owned GDI+ bitmap; releases the decoder and source file immediately.
+; Retain the existing entry point for WebP callers.
 LoadWebPBitmap(path)
+{
+    return LoadWICBitmap(path)
+}
+
+; Decode the first frame through the installed Windows WIC codec.
+; Returns an owned GDI+ bitmap; releases the decoder and source file immediately.
+LoadWICBitmap(path)
 {
     factory := 0, decoder := 0, frame := 0, converted := 0, bitmap := 0
     locked := false, success := false
