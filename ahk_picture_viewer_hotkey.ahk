@@ -56,7 +56,7 @@ return
 
 Enter::
     WinMaximize, ahk_id %pvhwnd%
-    GuiShowImage(GetCurrentImagePath(), "fit_image")
+    GuiShowImage(GetCurrentImagePath(), "fit_image", true)
     GuiUpdateTitle(GetCurrentImagePath())
 return
 
