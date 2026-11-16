@@ -19,8 +19,9 @@ Gdip_SetPixel(bitmap, 1, 0, 0xFF00FF00)
 Gdip_SetPixel(bitmap, 0, 1, 0xFF0000FF)
 Gdip_SetPixel(bitmap, 1, 1, 0xFFFFFFFF)
 try {
+    SetTimer, GuiUpdateNavigation, Off
     WinGet, ex_style, ExStyle, ahk_id %pvhwnd%
-    Assert(ex_style & 0x02000000, "Window composites image and background paints")
+    Assert(!(ex_style & 0x02000000), "No full-window compositing during large bitmap pans")
     ShowImageToControl(pvpic, bitmap, 20, 20)
     GuiControlGet, hwnd, PV:hwnd, pvpic
     handle := DllCall("SendMessage", "Ptr", hwnd, "UInt", 0x173, "Ptr", 0, "Ptr", 0, "Ptr")
@@ -30,6 +31,7 @@ try {
     Assert((Gdip_GetPixel(copy, 5, 15) & 0xFFFFFF) = 0x0000FF, "Bottom-left is blue")
     Assert((Gdip_GetPixel(copy, 15, 15) & 0xFFFFFF) = 0xFFFFFF, "Bottom-right is white")
     Gdip_DisposeImage(copy)
+    Assert(DllCall("SendMessage", "Ptr", hwnd, "UInt", 0x14, "Ptr", 0, "Ptr", 0) = 1, "Bitmap painter suppresses background erase")
     before := DllCall("GetGuiResources", "Ptr", DllCall("GetCurrentProcess", "Ptr"), "UInt", 0)
     Loop, 100
         ShowImageToControl(pvpic, bitmap, 20, 20)
@@ -46,6 +48,7 @@ try {
     ; Exercise a 96 MB displayed bitmap, not just the tiny pixel fixture.
     ShowImageToControl(pvpic, bitmap, 6000, 4000)
     before := DllCall("GetGuiResources", "Ptr", DllCall("GetCurrentProcess", "Ptr"), "UInt", 0)
+    pan_started := A_TickCount
     Loop, 12 {
         GuiMoveImageControl(-100 * A_Index, -50 * A_Index)
         Assert(!DllCall("GetUpdateRect", "Ptr", hwnd, "Ptr", 0, "Int", 0), "Large image finishes each pan paint")
@@ -56,6 +59,7 @@ try {
     }
     after := DllCall("GetGuiResources", "Ptr", DllCall("GetCurrentProcess", "Ptr"), "UInt", 0)
     Assert(after = before, "Large-image pans do not leak GDI handles")
+    FileAppend, % "Large bitmap: 12 pan/paint checks in " (A_TickCount - pan_started) " ms`n", *
     FileAppend, PASS: direct rendering pixels and resource ownership`n, *
 } catch error {
     exit_code := 1

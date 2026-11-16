@@ -49,15 +49,18 @@ GuiInitialize()
     global pv_menu_visible := false
     Gui, PV:Color, 0x1e1e1e
     Gui, PV:Margin, 0, 0
-    ; Composite parent and child paints into one frame while the image moves.
-    ; Otherwise newly exposed edges can show the erased background first.
-    GUI, PV:+Resize -MaxSize -MinSize +LastFound +Hwndpvhwnd +E0x02000000
+    ; Keep background painting out of child controls. Bitmap controls paint
+    ; their clipped pixels directly, without a window-sized composite buffer.
+    GUI, PV:+Resize -MaxSize -MinSize +LastFound +Hwndpvhwnd +0x02000000
     Gui, PV:Add, Text, 0x400000E vpvpic   ; SS_BITMAP | WS_CLIPSIBLINGS
+    GuiControlGet, image_hwnd, PV:Hwnd, pvpic
+    GuiInstallBitmapPainter(image_hwnd)
     Gui, PV:Font, s24, Segoe UI
     Gui, PV:Add, Button, Hidden -TabStop x12 y12 w44 h64 hwndpv_prev_button gPrevPicture, <
     Gui, PV:Add, Button, Hidden -TabStop x68 y12 w44 h64 hwndpv_next_button gNextPicture, >
     Gui, PV:Font
     Gui, PV:Add, Text, Hidden 0x400010E x0 y0 w1 h1 hwndthumbnail_hwnd
+    GuiInstallBitmapPainter(thumbnail_hwnd)
     Gui, PV:Add, Text, Hidden 0x4000301 Background404040 cFFFFFF x0 y0 w180 h20 hwndthumbnail_handle, Drag to move
     pv_thumbnail := {hwnd: thumbnail_hwnd, handle: thumbnail_handle, bitmap: 0, source: 0, dragging: false}
     FilmstripInitialize()
@@ -482,17 +485,51 @@ MoveImage(offset_x, offset_y)
     }
 }
 
+GuiInstallBitmapPainter(hwnd)
+{
+    static callback := RegisterCallback("GuiBitmapPaintProc", "", 6)
+    DllCall("comctl32\SetWindowSubclass", "Ptr", hwnd, "Ptr", callback, "UPtr", 1, "UPtr", 0)
+}
+
+GuiBitmapPaintProc(hwnd, msg, wParam, lParam, subclass_id, reference)
+{
+    Critical
+    if( msg = 0x14 || msg = 0xF ) {
+        bitmap := DllCall("SendMessage", "Ptr", hwnd, "UInt", 0x173, "Ptr", 0, "Ptr", 0, "Ptr")
+        if( bitmap ) {
+            ; The bitmap covers the control: never expose an erase-only frame.
+            if( msg = 0x14 )
+                return 1
+            VarSetCapacity(paint, A_PtrSize = 8 ? 72 : 64, 0)
+            dc := DllCall("BeginPaint", "Ptr", hwnd, "Ptr", &paint, "Ptr")
+            VarSetCapacity(clip, 16, 0)
+            if( DllCall("GetClipBox", "Ptr", dc, "Ptr", &clip) > 1 ) {
+                x := NumGet(clip, 0, "Int"), y := NumGet(clip, 4, "Int")
+                w := NumGet(clip, 8, "Int") - x, h := NumGet(clip, 12, "Int") - y
+                memory_dc := CreateCompatibleDC(dc)
+                if( memory_dc ) {
+                    previous := SelectObject(memory_dc, bitmap)
+                    DllCall("BitBlt", "Ptr", dc, "Int", x, "Int", y, "Int", w, "Int", h
+                        , "Ptr", memory_dc, "Int", x, "Int", y, "UInt", 0x00CC0020)
+                    SelectObject(memory_dc, previous)
+                    DeleteDC(memory_dc)
+                }
+            }
+            DllCall("EndPaint", "Ptr", hwnd, "Ptr", &paint)
+            return 0
+        }
+    }
+    return DllCall("comctl32\DefSubclassProc", "Ptr", hwnd, "UInt", msg, "Ptr", wParam, "Ptr", lParam, "Ptr")
+}
+
 GuiMoveImageControl(x, y, repaint:=true)
 {
     global pvpic, pvhwnd
     GuiControlGet, image_hwnd, PV:Hwnd, pvpic
-    ; Do not let Windows copy a partially visible bitmap control while moving
-    ; it or paint the exposed background before the navigator is ready.
-    ; NOSIZE | NOZORDER | NOREDRAW | NOACTIVATE | NOCOPYBITS.
+    ; Let Windows preserve existing pixels and invalidate only exposed regions.
+    ; NOSIZE | NOZORDER | NOACTIVATE.
     DllCall("SetWindowPos", "Ptr", image_hwnd, "Ptr", 0, "Int", Round(x), "Int", Round(y)
-        , "Int", 0, "Int", 0, "UInt", 0x11D)
-    ; Queue one complete composite frame; NOREDRAW also suppresses invalidation.
-    DllCall("RedrawWindow", "Ptr", pvhwnd, "Ptr", 0, "Ptr", 0, "UInt", 0x85)
+        , "Int", 0, "Int", 0, "UInt", 0x15)
     if( repaint )
         DllCall("RedrawWindow", "Ptr", pvhwnd, "Ptr", 0, "Ptr", 0, "UInt", 0x180)
 }
@@ -572,6 +609,12 @@ GuiRenderThumbnail()
     retained := DllCall("SendMessage", "Ptr", pv_thumbnail.hwnd, "UInt", 0x173, "Ptr", 0, "Ptr", 0, "Ptr")
     if( bitmap && retained != bitmap )
         DeleteObject(bitmap)
+    ; Panning changes only the overlay, not the navigator's geometry/z-order.
+    GuiControlGet, current_thumb, PV:Pos, % pv_thumbnail.hwnd
+    if( current_thumbX = pv_thumbnail.x && current_thumbY = pv_thumbnail.y
+        && current_thumbW = w && current_thumbH = h
+        && DllCall("IsWindowVisible", "Ptr", pv_thumbnail.hwnd) )
+        return
     GuiControl, PV:Move, % pv_thumbnail.hwnd, % "x" pv_thumbnail.x " y" pv_thumbnail.y " w" w " h" h
     DllCall("SetWindowPos", "Ptr", pv_thumbnail.hwnd, "Ptr", 0, "Int", 0, "Int", 0
         , "Int", 0, "Int", 0, "UInt", 0x53)
