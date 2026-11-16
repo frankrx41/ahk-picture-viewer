@@ -39,6 +39,10 @@ try {
     EndThumbnailDrag()
     GuiControlGet, picture, PV:Pos, pvpic
     Assert(pictureX = 0 && pictureY = 0, "Drag to top-left clamps to image origin")
+    stationary_bitmap := DllCall("SendMessage", "Ptr", pv_thumbnail.hwnd, "UInt", 0x173, "Ptr", 0, "Ptr", 0, "Ptr")
+    Loop, 20
+        PanFromThumbnail(-100, -100)
+    Assert(stationary_bitmap = DllCall("SendMessage", "Ptr", pv_thumbnail.hwnd, "UInt", 0x173, "Ptr", 0, "Ptr", 0, "Ptr"), "Stationary drag does not replace thumbnail bitmap")
     BeginThumbnailDrag(pv_thumbnail.w, pv_thumbnail.h)
     PanFromThumbnail(pv_thumbnail.w + 100, pv_thumbnail.h + 100)
     EndThumbnailDrag()

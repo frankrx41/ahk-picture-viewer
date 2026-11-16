@@ -474,7 +474,7 @@ MoveImage(offset_x, offset_y)
         gui_picturex += offset_x
         gui_picturey += offset_y
         pos_str := "w" gui_picturew " h" gui_pictureh " x" gui_picturex " y" gui_picturey
-        GuiMoveImageControl(gui_picturex, gui_picturey)
+        GuiMoveImageControl(gui_picturex, gui_picturey, false)
         GuiUpdateThumbnail()
         ; DrawBox(posx, posy, posw, posh)
         ; GuiControl, PV:MoveDraw, transPic, % pos_str
@@ -482,22 +482,26 @@ MoveImage(offset_x, offset_y)
     }
 }
 
-GuiMoveImageControl(x, y)
+GuiMoveImageControl(x, y, repaint:=true)
 {
     global pvpic, pvhwnd
     GuiControl, PV:Move, pvpic, % "x" Round(x) " y" Round(y)
     ; Finish the composite paint before returning to timers/preloading.
     ; RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN | RDW_UPDATENOW.
-    DllCall("RedrawWindow", "Ptr", pvhwnd, "Ptr", 0, "Ptr", 0, "UInt", 0x185)
+    if( repaint )
+        DllCall("RedrawWindow", "Ptr", pvhwnd, "Ptr", 0, "Ptr", 0, "UInt", 0x185)
 }
 
 ; The navigator owns only a small preview. Full-size images stay in image_cache.
 GuiUpdateThumbnail()
 {
+    global pvhwnd
     was_critical := A_IsCritical
     Critical, On
     try {
         GuiRenderThumbnail()
+        ; Present the image position and navigator overlay in the same paint.
+        DllCall("RedrawWindow", "Ptr", pvhwnd, "Ptr", 0, "Ptr", 0, "UInt", 0x185)
     } finally {
         Critical, % was_critical
     }
@@ -587,6 +591,8 @@ BeginThumbnailMove()
 MoveThumbnailTo(x, y)
 {
     global pv_thumbnail
+    if( Round(x) = pv_thumbnail.x && Round(y) = pv_thumbnail.y )
+        return
     pv_thumbnail.x := x, pv_thumbnail.y := y, pv_thumbnail.custom_position := true
     GuiUpdateThumbnail()
 }
@@ -632,7 +638,9 @@ PanFromThumbnail(x, y)
     GuiControlGet, picture, PV:Pos, pvpic
     image_x := pictureW > client_w ? Max(client_w - pictureW, Min(0, -(x - pv_thumbnail.grab_x) * pictureW / pv_thumbnail.w)) : (client_w - pictureW) / 2
     image_y := pictureH > client_h ? Max(client_h - pictureH, Min(0, -(y - pv_thumbnail.grab_y) * pictureH / pv_thumbnail.h)) : (client_h - pictureH) / 2
-    GuiMoveImageControl(image_x, image_y)
+    if( Round(image_x) = pictureX && Round(image_y) = pictureY )
+        return
+    GuiMoveImageControl(image_x, image_y, false)
     GuiUpdateThumbnail()
 }
 
