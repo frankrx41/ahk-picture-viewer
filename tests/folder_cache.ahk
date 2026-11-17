@@ -18,33 +18,33 @@ try {
     CancelFolderCache()
     GuiUpdateTitle("")
     WinGetTitle, title, ahk_id %pvhwnd%
-    Assert(InStr(title, "Cache: 0 files, 0.0 MiB"), "Empty cache count and size visible without folder job")
+    Assert(InStr(title, "Cached 0/2 | Cache memory: 0.0 MiB"), "Empty cache count and size visible without folder job")
     image_cache.bytes := 4 * 1024 * 1024 * 1024
-    Assert(InStr(ImageCacheStatus(), "4.00 GiB"), "Cache size supports more than 32-bit bytes")
+    Assert(InStr(FolderCacheStatus(), "4.00 GiB"), "Cache size supports more than 32-bit bytes")
     image_cache.bytes := 0
     image_cache.Get(img_path_list[1])
     GuiUpdateTitle(GetCurrentImagePath())
     WinGetTitle, title, ahk_id %pvhwnd%
-    Assert(InStr(title, "Cache: 1 files,"), "Ordinary viewing counts without folder job")
+    Assert(InStr(title, "Cached 1/2"), "Ordinary viewing counts without folder job")
     image_cache.Get(img_path_list[1])
-    Assert(InStr(ImageCacheStatus(), "Cache: 1 files,"), "Revisiting does not double-count")
+    Assert(InStr(FolderCacheStatus(), "Cached 1/2"), "Revisiting does not double-count")
     LoadAllFolderFiles()
     SetTimer, CacheFolderTick, Off
-    Assert(InStr(FolderCacheStatus(), "Caching 0/2"), "Initial progress")
+    Assert(InStr(FolderCacheStatus(), "Caching 1/2"), "Initial progress")
     CacheFolderTick()
     SetTimer, CacheFolderTick, Off
     Assert(folder_cache.done = 1 && folder_cache.active, "One file per tick")
     CacheFolderTick()
     Assert(!folder_cache.active && image_cache.entries.Count() = 2, "All files cached")
-    Assert(InStr(ImageCacheStatus(), "Cache: 2 files,"), "Cache counts all distinct decoded images")
+    Assert(InStr(FolderCacheStatus(), "Cached 2/2"), "Cache counts all distinct decoded images")
     Assert(InStr(FolderCacheStatus(), "Cached 2/2"), "Completion status")
     WinGetTitle, title, ahk_id %pvhwnd%
     Assert(InStr(title, "Cached 2/2"), "Window title reports completion")
-    Assert(InStr(title, ImageCacheStatus()), "Title includes memory size during folder caching")
+    Assert(InStr(title, FolderCacheStatus()), "Title includes memory size during folder caching")
     CancelFolderCache()
     GuiUpdateTitle(GetCurrentImagePath())
     WinGetTitle, title, ahk_id %pvhwnd%
-    Assert(InStr(title, ImageCacheStatus()), "Cache size remains after clearing folder job")
+    Assert(InStr(title, FolderCacheStatus()), "Cache size remains after clearing folder job")
     img_path_list := [img_path_list[1], A_ScriptDir "\missing.png"]
     LoadAllFolderFiles()
     SetTimer, CacheFolderTick, Off
@@ -57,9 +57,9 @@ try {
     SetTimer, CacheFolderTick, Off
     img_path_list := []
     CacheFolderTick()
-    Assert(FolderCacheStatus() = "", "Folder change cancels stale work")
+    Assert(InStr(FolderCacheStatus(), "Cached 0/0"), "Folder change cancels stale work")
     LoadAllFolderFiles()
-    Assert(FolderCacheStatus() = "", "Empty list is safe")
+    Assert(InStr(FolderCacheStatus(), "Cached 0/0"), "Empty list is safe")
     FileAppend, % "PASS: folder caching; Windows " A_OSVersion "; AHK " A_AhkVersion "`n", *
 } catch error {
     exit_code := 1
@@ -89,4 +89,3 @@ Assert(condition, message) {
 
 
 #Include %A_ScriptDir%\..\ahk_picture_viewer_filmstrip.ahk
-

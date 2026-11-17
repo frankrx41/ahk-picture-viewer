@@ -107,12 +107,21 @@ CacheFolderTick()
 
 FolderCacheStatus()
 {
-    global folder_cache
-    if( !IsObject(folder_cache) )
-        return ""
-    return " | " (folder_cache.active ? "Caching " : "Cached ")
-        . (folder_cache.done - folder_cache.failed) "/" folder_cache.total
-        . (folder_cache.failed ? " (" folder_cache.failed " failed)" : "")
+    global folder_cache, img_path_list, image_cache
+    count := 0
+    total := IsObject(img_path_list) ? img_path_list.Length() : 0
+    for index, path in img_path_list {
+        if( IsObject(image_cache) && image_cache.entries.HasKey(path) )
+            count += 1
+    }
+    current_job := IsObject(folder_cache) && folder_cache.list == img_path_list
+    bytes := IsObject(image_cache) ? image_cache.bytes : 0
+    size := bytes >= 1024 * 1024 * 1024
+        ? Format("{:.2f} GiB", bytes / (1024 * 1024 * 1024))
+        : Format("{:.1f} MiB", bytes / (1024 * 1024))
+    return " | " (current_job && folder_cache.active ? "Caching " : "Cached ")
+        . count "/" total " | Cache memory: " size
+        . (current_job && folder_cache.failed ? " (" folder_cache.failed " failed)" : "")
 }
 
 PreloadNextImage()
