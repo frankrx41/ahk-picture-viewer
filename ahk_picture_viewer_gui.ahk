@@ -197,17 +197,19 @@ GuiUpdateTitle(image_path:="")
     static img_name
     if( image_path != "" ) {
         SplitPath, image_path, img_name
-        script_title := Format("{1} | {2}", img_name, GetFileIndexText())
-        ; GetImgDimension(image_path, img_w, img_h)
-        image_cache.GetDimensions(image_path, img_w, img_h)
-        script_title .= Format(" | {:.0f}*{:.0f}", img_w, img_h)
-        zoom := GetZoomLevel("get_zoom")
-        script_title .= Format(" | {:.1f}%", zoom*100)
-        script_title .= Format(" | {:.0f}*{:.0f}", zoom*img_w, zoom*img_h)
-        script_title .= Format(" | {1}", GetZoomLevel("get_legacy"))
-        script_title .= FolderCacheStatus()
         if( !pv_title_details )
             script_title := img_name
+        else {
+            script_title := Format("{1} | {2}", img_name, GetFileIndexText())
+            ; GetImgDimension(image_path, img_w, img_h)
+            image_cache.GetDimensions(image_path, img_w, img_h)
+            script_title .= Format(" | {:.0f}*{:.0f}", img_w, img_h)
+            zoom := GetZoomLevel("get_zoom")
+            script_title .= Format(" | {:.1f}%", zoom*100)
+            script_title .= Format(" | {:.0f}*{:.0f}", zoom*img_w, zoom*img_h)
+            script_title .= Format(" | {1}", GetZoomLevel("get_legacy"))
+            script_title .= FolderCacheStatus()
+        }
     } else {
         script_title := "AHK Picture Viewer"
     }
