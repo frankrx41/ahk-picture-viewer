@@ -173,6 +173,10 @@ GetZoomLevel(method:="", bitmap:="")
         return Format("{:.1f}% ({})", last_zoom*100, last_zoom_param)
     }
     else
+    if( method == "get_zoom" ) {
+        return last_zoom
+    }
+    else
     if( method == "get_legacy" ) {
         return last_zoom_param
     }

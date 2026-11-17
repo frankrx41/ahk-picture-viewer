@@ -120,7 +120,7 @@ FolderCacheStatus()
         ? Format("{:.2f} GiB", bytes / (1024 * 1024 * 1024))
         : Format("{:.1f} MiB", bytes / (1024 * 1024))
     return " | " (current_job && folder_cache.active ? "Caching " : "Cached ")
-        . count "/" total " | Cache memory: " size
+        . count "/" total " | Memory: " size
         . (current_job && folder_cache.failed ? " (" folder_cache.failed " failed)" : "")
 }
 
