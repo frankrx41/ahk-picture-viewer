@@ -27,7 +27,7 @@ return
 return
 
 Esc::
-    if( IsObject(folder_cache) ) {
+    if( IsObject(folder_cache) && folder_cache.active ) {
         CancelFolderCache()
     } else {
         Gosub, Exit
