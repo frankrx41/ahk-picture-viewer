@@ -182,11 +182,12 @@ ImageCacheStatus()
 {
     global image_cache
     bytes := IsObject(image_cache) ? image_cache.bytes : 0
+    count := IsObject(image_cache) ? image_cache.entries.Count() : 0
     if( bytes >= 1024 * 1024 * 1024 )
         size := Format("{:.2f} GiB", bytes / (1024 * 1024 * 1024))
     else
         size := Format("{:.1f} MiB", bytes / (1024 * 1024))
-    return " | Cache: " size
+    return " | Cache: " count " files, " size
 }
 
 GuiShowImage(image_path, zoom_method:="auto", keep_center:=false)

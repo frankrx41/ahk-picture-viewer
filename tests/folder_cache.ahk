@@ -13,13 +13,21 @@ img_list_index := 1
 exit_code := 0
 GuiInitialize()
 try {
+    ; Drive cache ticks explicitly; background preload must not affect counts.
+    Critical, On
     CancelFolderCache()
     GuiUpdateTitle("")
     WinGetTitle, title, ahk_id %pvhwnd%
-    Assert(InStr(title, "Cache: 0.0 MiB"), "Empty cache size visible without folder job")
+    Assert(InStr(title, "Cache: 0 files, 0.0 MiB"), "Empty cache count and size visible without folder job")
     image_cache.bytes := 4 * 1024 * 1024 * 1024
     Assert(InStr(ImageCacheStatus(), "4.00 GiB"), "Cache size supports more than 32-bit bytes")
     image_cache.bytes := 0
+    image_cache.Get(img_path_list[1])
+    GuiUpdateTitle(GetCurrentImagePath())
+    WinGetTitle, title, ahk_id %pvhwnd%
+    Assert(InStr(title, "Cache: 1 files,"), "Ordinary viewing counts without folder job")
+    image_cache.Get(img_path_list[1])
+    Assert(InStr(ImageCacheStatus(), "Cache: 1 files,"), "Revisiting does not double-count")
     LoadAllFolderFiles()
     SetTimer, CacheFolderTick, Off
     Assert(InStr(FolderCacheStatus(), "Caching 0/2"), "Initial progress")
@@ -28,6 +36,7 @@ try {
     Assert(folder_cache.done = 1 && folder_cache.active, "One file per tick")
     CacheFolderTick()
     Assert(!folder_cache.active && image_cache.entries.Count() = 2, "All files cached")
+    Assert(InStr(ImageCacheStatus(), "Cache: 2 files,"), "Cache counts all distinct decoded images")
     Assert(InStr(FolderCacheStatus(), "Cached 2/2"), "Completion status")
     WinGetTitle, title, ahk_id %pvhwnd%
     Assert(InStr(title, "Cached 2/2"), "Window title reports completion")
@@ -56,12 +65,15 @@ try {
     exit_code := 1
     FileAppend, % "FAIL: " error.Message "`n", *
 } finally {
+    SetTimer, PreloadNextImage, Off
+    SetTimer, CacheFolderTick, Off
     SetTimer, GuiUpdateNavigation, Off
     ClearThumbnail()
     FilmstripClear()
     Gui, PV:Destroy
     image_cache.Clear()
     Gdip_Shutdown(token)
+    Critical, Off
 }
 ExitApp, % exit_code
 Assert(condition, message) {
