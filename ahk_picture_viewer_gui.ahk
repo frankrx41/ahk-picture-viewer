@@ -96,13 +96,15 @@ GuiInitialize()
     Menu, right_menu, Add, Copy as &Name, CopyAsName
     Menu, right_menu, Add,
 
+    zoom_keys := {100: "1", 200: "2", 300: "3", 400: "4", 500: "5", 1000: "6"}
     for index, percent in [25, 50, 75, 100, 150, 200, 300, 400, 500, 1000] {
         zoom_fn := Func("MenuSetZoom").Bind(percent "%")
-        Menu, zoom, Add, % percent "%", % zoom_fn
+        zoom_label := percent "%" (zoom_keys.HasKey(percent) ? "`t" zoom_keys[percent] " / Numpad" zoom_keys[percent] : "")
+        Menu, zoom, Add, % zoom_label, % zoom_fn
     }
     Menu, zoom, Add,
-    for label, method in {"Fit Width": "fit_width", "Fit Height": "fit_height"
-        , "Fit Image": "fit_image", "Fit Window": "fit_window", "Auto": "auto"} {
+    for label, method in {"Fit Width`tSpace": "fit_width", "Fit Height`t'": "fit_height"
+        , "Fit Image`tEnter": "fit_image", "Fit Window`t/": "fit_window", "Auto": "auto"} {
         zoom_fn := Func("MenuSetZoom").Bind(method)
         Menu, zoom, Add, % label, % zoom_fn
     }
