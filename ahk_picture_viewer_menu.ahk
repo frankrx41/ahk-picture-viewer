@@ -1,3 +1,13 @@
+MenuSetZoom(method, unused*)
+{
+    global pv_has_image
+    if( !pv_has_image || GetCurrentImagePath() = "" )
+        return
+    ; Menu selection uses the window center, not the menu's mouse position.
+    GuiShowImage(GetCurrentImagePath(), method, true)
+    GuiUpdateTitle(GetCurrentImagePath())
+}
+
 CopyAsFile:
     ClipboardSetFiles(GetCurrentImagePath())
 return

@@ -93,6 +93,19 @@ GuiInitialize()
     Menu, right_menu, Add, Copy as &Text, CopyAsText
     Menu, right_menu, Add, Copy as &Path`tCtrl+Shift+C, CopyAsPath
     Menu, right_menu, Add, Copy as &Name, CopyAsName
+
+    for index, percent in [25, 50, 75, 100, 150, 200, 300, 400, 500, 1000] {
+        zoom_fn := Func("MenuSetZoom").Bind(percent "%")
+        Menu, zoom, Add, % percent "%", % zoom_fn
+    }
+    Menu, zoom, Add,
+    for label, method in {"Fit Width": "fit_width", "Fit Height": "fit_height"
+        , "Fit Image": "fit_image", "Fit Window": "fit_window", "Auto": "auto"} {
+        zoom_fn := Func("MenuSetZoom").Bind(method)
+        Menu, zoom, Add, % label, % zoom_fn
+    }
+    Menu, right_menu, Add, Zoom, :zoom
+
     Menu, right_menu, Add,
     Menu, right_menu, Add, P&roperties`tAlt+Enter, ViewFileProperties
     ; Menu, right_menu, Icon, %A_ScriptDir%/AHKPV.ico, , 1 
