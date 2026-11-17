@@ -79,22 +79,22 @@ GuiInitialize()
     ; OnMessage(0x06, "GuiMenuActivate")
 
     ; Right Menu
-    Menu, right_menu, Add, &Next Picture, NextPicture
-    Menu, right_menu, Add, &Prev Picture, PrevPicture
+    Menu, right_menu, Add, &Next Picture`tRight, NextPicture
+    Menu, right_menu, Add, &Prev Picture`tLeft, PrevPicture
     Menu, right_menu, Add,
-    Menu, right_menu, Add, &Open, % open_file_fn
+    Menu, right_menu, Add, &Open`tCtrl+O, % open_file_fn
     cache_folder_fn := Func("LoadAllFolderFiles")
-    Menu, right_menu, Add, Load ALL Files in current folder`tCtrl+L, % cache_folder_fn
+    Menu, right_menu, Add, Cache current folder`tCtrl+L, % cache_folder_fn
     Menu, right_menu, Add,
     Menu, right_menu, Add, Copy as &File, CopyAsFile
-    Menu, right_menu, Add, Copy as &Image, CopyToClipboard
-    Menu, right_menu, Add, Copy as &HTML, CopyAsHTML
+    Menu, right_menu, Add, Copy as &Image`tCtrl+C, CopyToClipboard
+    Menu, right_menu, Add, Copy as &HTML (base64), CopyAsHTML
     Menu, right_menu, Add, Copy as &Markdown, CopyAsMarkdown
     Menu, right_menu, Add, Copy as &Text, CopyAsText
-    Menu, right_menu, Add, Copy as &Path, CopyAsPath
+    Menu, right_menu, Add, Copy as &Path`tCtrl+Shift+C, CopyAsPath
     Menu, right_menu, Add, Copy as &Name, CopyAsName
     Menu, right_menu, Add,
-    Menu, right_menu, Add, P&roperties, ViewFileProperties
+    Menu, right_menu, Add, P&roperties`tAlt+Enter, ViewFileProperties
     ; Menu, right_menu, Icon, %A_ScriptDir%/AHKPV.ico, , 1 
 }
 
