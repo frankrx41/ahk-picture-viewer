@@ -79,8 +79,8 @@ GuiInitialize()
     ; OnMessage(0x06, "GuiMenuActivate")
 
     ; Right Menu
-    Menu, right_menu, Add, &Next Picture`tRight, NextPicture
-    Menu, right_menu, Add, &Prev Picture`tLeft, PrevPicture
+    Menu, right_menu, Add, &Next Picture`t>, NextPicture
+    Menu, right_menu, Add, &Prev Picture`t<, PrevPicture
     Menu, right_menu, Add,
     Menu, right_menu, Add, &Open`tCtrl+O, % open_file_fn
     cache_folder_fn := Func("LoadAllFolderFiles")
@@ -96,10 +96,10 @@ GuiInitialize()
     Menu, right_menu, Add, Copy as &Name, CopyAsName
     Menu, right_menu, Add,
 
-    zoom_keys := {100: "1", 200: "2", 300: "3", 400: "4", 500: "5", 1000: "6"}
+    zoom_keys := {50: "``", 100: "1 / Numpad1", 200: "2 / Numpad2", 300: "3 / Numpad3", 400: "4 / Numpad4", 500: "5 / Numpad5"}
     for index, percent in [25, 50, 75, 100, 150, 200, 300, 400, 500, 1000] {
         zoom_fn := Func("MenuSetZoom").Bind(percent "%")
-        zoom_label := percent "%" (zoom_keys.HasKey(percent) ? "`t" zoom_keys[percent] " / Numpad" zoom_keys[percent] : "")
+        zoom_label := percent "%" (zoom_keys.HasKey(percent) ? "`t" zoom_keys[percent]: "")
         Menu, zoom, Add, % zoom_label, % zoom_fn
     }
     Menu, zoom, Add,
@@ -108,13 +108,14 @@ GuiInitialize()
         zoom_fn := Func("MenuSetZoom").Bind(method)
         Menu, zoom, Add, % label, % zoom_fn
     }
+    zoom_width_keys := {100: "6 / Numpad6", 200: "7 / Numpad7", 500: "8 / Numpad8", 1000: "9 / Numpad9"}
     Menu, zoom, Add,
     for index, width in [10, 50, 100, 200, 500, 1000, 2000] {
         zoom_fn := Func("MenuSetZoom").Bind("width_" width "px")
-        Menu, zoom_width, Add, % width " px", % zoom_fn
+        zoom_label := "Width " width "px" (zoom_width_keys.HasKey(width) ? "`t" zoom_width_keys[width]: "")
+        Menu, zoom, Add, % zoom_label, % zoom_fn
     }
-    Menu, zoom, Add, Scale to Width, :zoom_width
-    Menu, right_menu, Add, Zoom, :zoom
+    Menu, right_menu, Add, &Zoom, :zoom
 
     Menu, right_menu, Add,
     Menu, right_menu, Add, P&roperties`tAlt+Enter, ViewFileProperties

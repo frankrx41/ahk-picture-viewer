@@ -10,10 +10,12 @@
 ;     }
 ; return
 
+,::
 Right::
     Gosub, NextPicture
 return
 
+.::
 Left::
     Gosub, PrevPicture
 return
@@ -65,7 +67,12 @@ Enter::
 return
 
 '::
-    GuiShowImage(GetCurrentImagePath(), "fit_height")
+    GuiShowImage(GetCurrentImagePath(), "fit_height", true)
+    GuiUpdateTitle(GetCurrentImagePath())
+return
+
+`::
+    GuiShowImage(GetCurrentImagePath(), "50%")
     GuiUpdateTitle(GetCurrentImagePath())
 return
 
@@ -101,25 +108,25 @@ return
 
 Numpad6::
 6::
-    GuiShowImage(GetCurrentImagePath(), "1000%")
+    GuiShowImage(GetCurrentImagePath(), "width_100px")
     GuiUpdateTitle(GetCurrentImagePath())
 return
 
 Numpad7::
 7::
-    GuiShowImage(GetCurrentImagePath(), "2000%")
+    GuiShowImage(GetCurrentImagePath(), "width_200px")
     GuiUpdateTitle(GetCurrentImagePath())
 return
 
 Numpad8::
 8::
-    GuiShowImage(GetCurrentImagePath(), "4000%")
+    GuiShowImage(GetCurrentImagePath(), "width_500px")
     GuiUpdateTitle(GetCurrentImagePath())
 return
 
 Numpad9::
 9::
-    GuiShowImage(GetCurrentImagePath(), "8000%")
+    GuiShowImage(GetCurrentImagePath(), "width_1000px")
     GuiUpdateTitle(GetCurrentImagePath())
 return
 
@@ -138,7 +145,7 @@ return
 ; Fit window to image size
 BackSpace::
     GuiShow("fit_size")
-    GuiShowImage(GetCurrentImagePath(), "")
+    GuiShowImage(GetCurrentImagePath(), "", true)
 return
 
 Delete::
