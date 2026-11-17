@@ -27,7 +27,11 @@ return
 return
 
 Esc::
-    Gosub, Exit
+    if( folder_cache ) {
+        CancelFolderCache()
+    } else {
+        Gosub, Exit
+    }
 return
 
 Up::
