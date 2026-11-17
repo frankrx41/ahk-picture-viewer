@@ -108,6 +108,12 @@ GuiInitialize()
         zoom_fn := Func("MenuSetZoom").Bind(method)
         Menu, zoom, Add, % label, % zoom_fn
     }
+    Menu, zoom, Add,
+    for index, width in [10, 50, 100, 200, 500, 1000, 2000] {
+        zoom_fn := Func("MenuSetZoom").Bind("width_" width "px")
+        Menu, zoom_width, Add, % width " px", % zoom_fn
+    }
+    Menu, zoom, Add, Scale to Width, :zoom_width
     Menu, right_menu, Add, Zoom, :zoom
 
     Menu, right_menu, Add,
@@ -244,6 +250,8 @@ GuiShowImage(image_path, zoom_method:="auto", keep_center:=false)
 ; See `Gdip_SetPbitmapCtrl`
 ShowImageToControl(pvpic, pbitmap, w, h)
 {
+    ; GDI takes integer dimensions; avoid truncating 49.999999 to 49 pixels.
+    w := Round(w), h := Max(1, Round(h))
     if( !pbitmap || w < 1 || h < 1 )
         return
 

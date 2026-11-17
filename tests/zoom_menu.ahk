@@ -30,6 +30,22 @@ try {
         WinGetTitle, title, ahk_id %pvhwnd%
         Assert(InStr(title, method), "Title updated for " method)
     }
+    for index, width in [10, 50, 100, 200, 500, 1000, 2000] {
+        MenuSetZoom("width_" width "px")
+        GuiControlGet, picture, PV:Pos, pvpic
+        Assert(pictureW = width, "Exact pixel width " width)
+        Assert(Abs(pictureH - width * 400 / 600) <= 1, "Pixel-width aspect ratio")
+        WinGetTitle, title, ahk_id %pvhwnd%
+        Assert(InStr(title, "width_" width "px"), "Title identifies pixel width")
+        GuiShowImage("menu-test", "last", true)
+        GuiControlGet, picture, PV:Pos, pvpic
+        Assert(pictureW = width, "Pixel width persists on redisplay")
+    }
+    other := Gdip_CreateBitmap(300, 600)
+    image_cache.entries["other-menu-test"] := {bitmap: other, bytes: 720000}
+    GuiShowImage("other-menu-test", "last", true)
+    GuiControlGet, picture, PV:Pos, pvpic
+    Assert(pictureW = 2000 && pictureH = 4000, "New image preserves target width and its own aspect ratio")
     GuiShowImage("")
     previous := GetZoomLevel("get_legacy")
     MenuSetZoom("200%")

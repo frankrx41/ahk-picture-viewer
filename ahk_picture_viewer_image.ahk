@@ -185,6 +185,12 @@ GetZoomLevel(method:="", bitmap:="")
         }
     }
     else
+    if( RegExMatch(method, "^width_([1-9][0-9]*)px$", width_match) ) {
+        Gdip_GetImageDimension(bitmap, img_w, img_h)
+        last_zoom := width_match1 / img_w
+        last_zoom_param := method
+    }
+    else
     if( method == "fit_width" ) {
         Gdip_GetImageDimension(bitmap, img_w, img_h)
         GetClientSize(PVhwnd, gui_w, gui_h)
