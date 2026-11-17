@@ -86,6 +86,7 @@ GuiInitialize()
     cache_folder_fn := Func("LoadAllFolderFiles")
     Menu, right_menu, Add, Cache current folder`tCtrl+L, % cache_folder_fn
     Menu, right_menu, Add,
+
     Menu, right_menu, Add, Copy as &File, CopyAsFile
     Menu, right_menu, Add, Copy as &Image`tCtrl+C, CopyToClipboard
     Menu, right_menu, Add, Copy as &HTML (base64), CopyAsHTML
@@ -93,6 +94,7 @@ GuiInitialize()
     Menu, right_menu, Add, Copy as &Text, CopyAsText
     Menu, right_menu, Add, Copy as &Path`tCtrl+Shift+C, CopyAsPath
     Menu, right_menu, Add, Copy as &Name, CopyAsName
+    Menu, right_menu, Add,
 
     for index, percent in [25, 50, 75, 100, 150, 200, 300, 400, 500, 1000] {
         zoom_fn := Func("MenuSetZoom").Bind(percent "%")
