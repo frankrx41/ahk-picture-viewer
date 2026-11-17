@@ -28,6 +28,10 @@ return
     LoadAllFolderFiles()
 return
 
+^B::
+    GuiToggleTitleDetails()
+return
+
 Esc::
     if( IsObject(folder_cache) && folder_cache.active ) {
         CancelFolderCache()

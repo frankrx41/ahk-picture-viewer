@@ -116,6 +116,10 @@ GuiInitialize()
         Menu, zoom, Add, % zoom_label, % zoom_fn
     }
     Menu, right_menu, Add, &Zoom, :zoom
+    global pv_title_details := true
+    title_details_fn := Func("GuiToggleTitleDetails")
+    Menu, right_menu, Add, Show Title Details`tCtrl+B, % title_details_fn
+    Menu, right_menu, Check, Show Title Details`tCtrl+B
 
     Menu, right_menu, Add,
     Menu, right_menu, Add, P&roperties`tAlt+Enter, ViewFileProperties
@@ -188,7 +192,7 @@ GuiShow( mode := "" )
 GuiUpdateTitle(image_path:="")
 {
     local
-    global image_cache
+    global image_cache, pv_title_details
     static img_name
     if( image_path != "" ) {
         SplitPath, image_path, img_name
@@ -201,10 +205,24 @@ GuiUpdateTitle(image_path:="")
         script_title .= Format(" | {:.0f}*{:.0f}", zoom*img_w, zoom*img_h)
         script_title .= Format(" | {1}", GetZoomLevel("get_legacy"))
         script_title .= FolderCacheStatus()
+        if( !pv_title_details )
+            script_title := img_name
     } else {
         script_title := "AHK Picture Viewer"
     }
     Gui, PV:Show,, % script_title
+}
+
+GuiToggleTitleDetails()
+{
+    global pv_title_details, pv_has_image
+    pv_title_details := !pv_title_details
+    if( pv_title_details ) {
+        Menu, right_menu, Check, Show Title Details`tCtrl+B
+    } else {
+        Menu, right_menu, Uncheck, Show Title Details`tCtrl+B
+    }
+    GuiUpdateTitle(pv_has_image ? GetCurrentImagePath() : "")
 }
 
 GuiShowImage(image_path, zoom_method:="auto", keep_center:=false)

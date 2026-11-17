@@ -18,6 +18,18 @@ try {
     image_cache.entries["menu-test"] := {bitmap: bitmap, bytes: 960000}
     img_path_list := ["menu-test"], img_list_index := 1
     GuiShowImage("menu-test", "100%", true)
+    GuiUpdateTitle(GetCurrentImagePath())
+    WinGetTitle, detailed_title, ahk_id %pvhwnd%
+    Assert(InStr(detailed_title, "Cached"), "Detailed title enabled by default")
+    GuiToggleTitleDetails()
+    WinGetTitle, title, ahk_id %pvhwnd%
+    Assert(title = "menu-test", "Details off shows filename only")
+    GuiUpdateTitle(GetCurrentImagePath())
+    WinGetTitle, title, ahk_id %pvhwnd%
+    Assert(title = "menu-test", "Title refresh preserves hidden details")
+    GuiToggleTitleDetails()
+    WinGetTitle, title, ahk_id %pvhwnd%
+    Assert(title = detailed_title, "Details on restores original full title")
     for index, percent in [25, 50, 75, 100, 150, 200, 300, 400, 500, 1000] {
         MenuSetZoom(percent "%")
         GuiControlGet, picture, PV:Pos, pvpic

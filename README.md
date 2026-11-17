@@ -70,6 +70,7 @@ Then you will get this when you right click an iamge file:
 | Left              | Prev image                    |
 | Right             | Next image                    |
 | Ctrl + O          | Open file                     |
+| Ctrl + B          | Toggle full title details / filename only |
 | Ctrl + L          | Cache all supported images in the current folder; title shows progress |
 | Esc               | Exit                          |
 | Up                | Zoom in                       |
