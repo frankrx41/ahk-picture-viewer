@@ -73,6 +73,7 @@ GuiInitialize()
     OnMessage(0x05, "WM_SIZE")
     OnMessage(0x020A, "WM_MOUSEWHEEL")
     OnMessage(0x0203, "WM_LBUTTONDBLCLK")
+    OnMessage(0x00A3, "GuiTitleDoubleClick")
     OnMessage(0x0202, "GuiEndPointerDrag")
     ; OnMessage(0x112, "GuiMenuSystemCommand")
     ; OnMessage(0x212, "GuiMenuExit")
@@ -421,6 +422,17 @@ WM_MOUSEWHEEL(wParam, lParam, msg, hwnd) {
 }
 
 ; https://www.autohotkey.com/boards/viewtopic.php?t=20083
+GuiTitleDoubleClick(wParam, lParam, msg, hwnd)
+{
+    global pvhwnd, pv_has_image
+    ; WM_NCLBUTTONDBLCLK, HTCAPTION. Leave borders and caption buttons alone.
+    if( hwnd != pvhwnd || wParam != 2 )
+        return
+    if( pv_has_image )
+        Clipboard := GetCurrentImageName()
+    return 0
+}
+
 WM_LBUTTONDBLCLK(wParam, lParam, msg, hwnd)
 {
     global pvhwnd, pvpic, pv_filmstrip

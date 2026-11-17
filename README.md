@@ -76,6 +76,7 @@ Then you will get this when you right click an iamge file:
 | Up                | Zoom in                       |
 | Down              | Zoom out                      |
 | Mouse drag        | Move image                    |
+| Title bar double-click | Copy current filename (including extension) |
 | Alt | Show and focus the menu bar; it hides automatically when dismissed |
 | Hover left/right edge | Show `<` / `>` buttons; click for previous/next image |
 | Drag bottom-right thumbnail | Pan the image using the blue visible-area rectangle; shown only when the displayed image exceeds the window |
