@@ -175,7 +175,18 @@ GuiUpdateTitle(image_path:="")
     } else {
         script_title := "AHK Picture Viewer"
     }
-    Gui, PV:Show,, % script_title . FolderCacheStatus()
+    Gui, PV:Show,, % script_title . FolderCacheStatus() . ImageCacheStatus()
+}
+
+ImageCacheStatus()
+{
+    global image_cache
+    bytes := IsObject(image_cache) ? image_cache.bytes : 0
+    if( bytes >= 1024 * 1024 * 1024 )
+        size := Format("{:.2f} GiB", bytes / (1024 * 1024 * 1024))
+    else
+        size := Format("{:.1f} MiB", bytes / (1024 * 1024))
+    return " | Cache: " size
 }
 
 GuiShowImage(image_path, zoom_method:="auto", keep_center:=false)
@@ -418,6 +429,13 @@ GuiUpdateNavigation()
     local
     global pvhwnd, pv_prev_button, pv_next_button, pv_has_image, pv_thumbnail
     static last_width := 0, last_height := 0
+    static last_cache_bytes := -1
+    global image_cache
+    ; Preloading and thumbnail decoding can grow the cache without navigation.
+    if( IsObject(image_cache) && image_cache.bytes != last_cache_bytes ) {
+        last_cache_bytes := image_cache.bytes
+        GuiUpdateTitle(pv_has_image ? GetCurrentImagePath() : "")
+    }
     if( !pv_prev_button || !pv_next_button )
         return
     GetClientSize(pvhwnd, width, height)

@@ -13,6 +13,13 @@ img_list_index := 1
 exit_code := 0
 GuiInitialize()
 try {
+    CancelFolderCache()
+    GuiUpdateTitle("")
+    WinGetTitle, title, ahk_id %pvhwnd%
+    Assert(InStr(title, "Cache: 0.0 MiB"), "Empty cache size visible without folder job")
+    image_cache.bytes := 4 * 1024 * 1024 * 1024
+    Assert(InStr(ImageCacheStatus(), "4.00 GiB"), "Cache size supports more than 32-bit bytes")
+    image_cache.bytes := 0
     LoadAllFolderFiles()
     SetTimer, CacheFolderTick, Off
     Assert(InStr(FolderCacheStatus(), "Caching 0/2"), "Initial progress")
@@ -24,6 +31,11 @@ try {
     Assert(InStr(FolderCacheStatus(), "Cached 2/2"), "Completion status")
     WinGetTitle, title, ahk_id %pvhwnd%
     Assert(InStr(title, "Cached 2/2"), "Window title reports completion")
+    Assert(InStr(title, ImageCacheStatus()), "Title includes memory size during folder caching")
+    CancelFolderCache()
+    GuiUpdateTitle(GetCurrentImagePath())
+    WinGetTitle, title, ahk_id %pvhwnd%
+    Assert(InStr(title, ImageCacheStatus()), "Cache size remains after clearing folder job")
     img_path_list := [img_path_list[1], A_ScriptDir "\missing.png"]
     LoadAllFolderFiles()
     SetTimer, CacheFolderTick, Off
