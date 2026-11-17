@@ -1,7 +1,7 @@
 
 ;*******************************************************************************
 ; Hotkeys
-#If WinActive("ahk_id " PVhwnd) && !pv_menu_visible
+#If WinActive("ahk_id " PVhwnd) && (!pv_menu_visible || pv_menu_pinned)
 
 ; ~LAlt up::
 ;     if( A_PriorKey == "LAlt" ) {

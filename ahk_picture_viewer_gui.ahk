@@ -121,6 +121,9 @@ GuiInitialize()
     title_details_fn := Func("GuiToggleTitleDetails")
     Menu, right_menu, Add, Show Title Details`tCtrl+B, % title_details_fn
     Menu, right_menu, Check, Show Title Details`tCtrl+B
+    global pv_menu_pinned := false
+    menu_bar_fn := Func("GuiToggleMenuBar")
+    Menu, right_menu, Add, Show File Menu Bar, % menu_bar_fn
 
     Menu, right_menu, Add,
     Menu, right_menu, Add, P&roperties`tAlt+Enter, ViewFileProperties
@@ -793,6 +796,21 @@ ClearThumbnail()
     pv_thumbnail.bitmap := 0, pv_thumbnail.source := 0
 }
 
+GuiToggleMenuBar()
+{
+    global pv_menu_visible, pv_menu_pinned
+    SetTimer, GuiHideMenu, Off
+    pv_menu_pinned := !pv_menu_pinned
+    if( pv_menu_pinned ) {
+        pv_menu_visible := true
+        Gui, PV:Menu, file_menubar
+        Menu, right_menu, Check, Show File Menu Bar
+    } else {
+        GuiHideMenu()
+        Menu, right_menu, Uncheck, Show File Menu Bar
+    }
+}
+
 GuiMenuSystemCommand(wParam, lParam, msg, hwnd)
 {
     global pvhwnd, pv_menu_visible
@@ -822,8 +840,8 @@ GuiMenuActivate(wParam, lParam, msg, hwnd)
 
 GuiHideMenu()
 {
-    global pv_menu_visible
-    if( !pv_menu_visible )
+    global pv_menu_visible, pv_menu_pinned
+    if( !pv_menu_visible || pv_menu_pinned )
         return
     Gui, PV:Menu
     pv_menu_visible := false
