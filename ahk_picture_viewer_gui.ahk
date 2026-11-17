@@ -94,7 +94,7 @@ GuiInitialize()
     Menu, right_menu, Add, Copy as &Markdown, CopyAsMarkdown
     Menu, right_menu, Add, Copy as &Text, CopyAsText
     Menu, right_menu, Add, Copy as &Path`tCtrl+Shift+C, CopyAsPath
-    Menu, right_menu, Add, Copy as &Name, CopyAsName
+    Menu, right_menu, Add, Copy as &Name`tDBClick Titlebar, CopyAsName
     Menu, right_menu, Add,
 
     zoom_keys := {50: "``", 100: "1 / Numpad1", 200: "2 / Numpad2", 300: "3 / Numpad3", 400: "4 / Numpad4", 500: "5 / Numpad5"}
@@ -211,7 +211,7 @@ GuiUpdateTitle(image_path:="")
             script_title .= FolderCacheStatus()
         }
     } else {
-        script_title := "AHK Picture Viewer"
+        script_title := "AHK Picture Viewer v1.0"
     }
     Gui, PV:Show,, % script_title
 }
@@ -432,23 +432,23 @@ GuiTitleDoubleClick(wParam, lParam, msg, hwnd)
         return
     if( pv_has_image )
         Clipboard := GetCurrentImageName()
+    else
+        OpenFile()
     return 0
 }
 
 WM_LBUTTONDBLCLK(wParam, lParam, msg, hwnd)
 {
-    global pvhwnd, pvpic, pv_filmstrip
+    global pvhwnd, pvpic, pv_filmstrip, pv_has_image
     ; Route by the message target, not the control currently under the cursor.
     ; Overlay redraws can otherwise make rapid navigation clicks hit Static1.
     if( hwnd == pv_filmstrip.hwnd )
         return WM_LBUTTONDOWN(wParam, lParam, msg, hwnd)
     GuiControlGet, image_hwnd, PV:Hwnd, pvpic
     if( hwnd == pvhwnd || hwnd == image_hwnd ) {
-        WinGet, is_max, MinMax, ahk_id %pvhwnd%
-        if( is_max ) {
-            WinRestore, ahk_id %pvhwnd%
-        } else {
-            WinMaximize, ahk_id %pvhwnd%
+        if( !pv_has_image )
+        {
+            OpenFile()
         }
     }
 }
