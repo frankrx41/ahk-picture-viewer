@@ -39,11 +39,12 @@ GuiInitialize()
     Menu, menu_file, Add, &Re-Open File, ReOpenFile
     Menu, menu_file, Add, &Close File, CloseFile
     Menu, menu_file, Add,
-    Menu, menu_file, Add, &Exit, Exit
+    Menu, menu_file, Add, &Exit`tEsc, Exit
     Menu, file_menubar, Add, &File, :menu_file
-    Menu, file_menubar, Add,
-    Menu, file_menubar, Add, &Prev, PrevPicture
-    Menu, file_menubar, Add, &Next, NextPicture
+    Menu, preview, Add, &Next Picture`t>, NextPicture
+    Menu, preview, Add, &Prev Picture`t<, PrevPicture
+    Menu, file_menubar, Add, &View, :preview
+    ; Menu, file_menubar, Add, Help
 
     Gui, PV:New, -DPIScale
     global pv_menu_visible := false
@@ -83,7 +84,7 @@ GuiInitialize()
     Menu, right_menu, Add, &Next Picture`t>, NextPicture
     Menu, right_menu, Add, &Prev Picture`t<, PrevPicture
     Menu, right_menu, Add,
-    Menu, right_menu, Add, &Open`tCtrl+O, % open_file_fn
+    ; Menu, right_menu, Add, &Open`tCtrl+O, % open_file_fn
     cache_folder_fn := Func("LoadAllFolderFiles")
     Menu, right_menu, Add, Cache current folder`tCtrl+L, % cache_folder_fn
     Menu, right_menu, Add,
@@ -123,7 +124,7 @@ GuiInitialize()
     Menu, right_menu, Check, Show Title Details`tCtrl+B
     global pv_menu_pinned := false
     menu_bar_fn := Func("GuiToggleMenuBar")
-    Menu, right_menu, Add, Show File Menu Bar, % menu_bar_fn
+    Menu, right_menu, Add, Show File Menu Bar`tCtrl+T, % menu_bar_fn
 
     Menu, right_menu, Add,
     Menu, right_menu, Add, P&roperties`tAlt+Enter, ViewFileProperties
@@ -804,10 +805,10 @@ GuiToggleMenuBar()
     if( pv_menu_pinned ) {
         pv_menu_visible := true
         Gui, PV:Menu, file_menubar
-        Menu, right_menu, Check, Show File Menu Bar
+        Menu, right_menu, Check, Show File Menu Bar`tCtrl+T
     } else {
         GuiHideMenu()
-        Menu, right_menu, Uncheck, Show File Menu Bar
+        Menu, right_menu, Uncheck, Show File Menu Bar`tCtrl+T
     }
 }
 
