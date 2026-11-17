@@ -197,9 +197,9 @@ GuiUpdateTitle(image_path:="")
     static img_name
     if( image_path != "" ) {
         SplitPath, image_path, img_name
-        if( !pv_title_details )
+        if( !pv_title_details ) {
             script_title := img_name
-        else {
+        } else {
             script_title := Format("{1} | {2}", img_name, GetFileIndexText())
             ; GetImgDimension(image_path, img_w, img_h)
             image_cache.GetDimensions(image_path, img_w, img_h)
